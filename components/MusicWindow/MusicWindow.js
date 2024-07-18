@@ -16,7 +16,7 @@ const MusicWindow = ({ onClose, canvasRef, isOpen }) => {
     { name: 'Bills Like Jean Spirit', url: '/Bills Like Jean Spirit.mp3' },
     { name: 'Scary Monsters And Nice Sprites', url: '/Scary Monsters And Nice Sprites.mp3' },
     { name: 'Toxicity', url: '/Toxicity.mp3' },
-    { name: "I'll be lucky someday", url: '/I%27ll%20be%20lucky%20someday.mp3' },
+    { name: "I'll be lucky someday", url: "/I'll be lucky someday.mp3" },
     { name: 'SC-9', url: '/SC-9.mp3' },
   ];
 

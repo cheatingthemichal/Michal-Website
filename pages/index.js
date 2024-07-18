@@ -150,7 +150,9 @@ const Home = () => {
             <List.Item icon={<Awfxcg321304 variant="32x32_4" />} onClick={() =>
               window.open('https://www.linkedin.com/in/micha%C5%82-haj%C5%82asz-9ba5a8224/', '_blank')?.focus()
             }>LinkedIn</List.Item>
-            <List.Item icon={<Cachevu100 variant="32x32_4" />}>Source Code</List.Item>
+            <List.Item icon={<Cachevu100 variant="32x32_4" />} onClick={() =>
+              window.open('https://github.com/cheatingthemichal/nextjs-project/', '_blank')?.focus()
+            }>Source Code</List.Item>
           </List>
         }
       />

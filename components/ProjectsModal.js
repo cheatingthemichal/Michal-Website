@@ -62,7 +62,7 @@ const ProjectsModal = ({ onClose, selectProject, currentProject }) => {
       case 'Research':
         return (
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', padding: '0 10px' }}>
-            <div style={{ cursor: 'pointer', textAlign: 'center' }}>
+            <div onClick={() => window.open('https://doi.org/10.1093/pnasnexus/pgae308', '_blank')?.focus()} style={{ cursor: 'pointer', textAlign: 'center' }}>
               <Wmsui321001 variant="32x32_4" />
               <p style={{ margin: '4px 0' }}>
                 My<br />

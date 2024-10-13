@@ -1,13 +1,25 @@
+// pages/index.js
 import Head from 'next/head';
 import { useState, useRef, useEffect } from 'react';
 import { TaskBar, List } from '@react95/core';
-import { Notepad, Msacm3210, Inetcpl1313, Awfxcg321304, Cachevu100, Mmsys120, Folder } from '@react95/icons';
+import {
+  Notepad,
+  Msacm3210,
+  Inetcpl1313,
+  Awfxcg321304,
+  Cachevu100,
+  Mmsys120,
+  Folder,
+} from '@react95/icons';
 import ReadMeWindow from '../components/ReadMeWindow';
 import MusicWindow from '../components/MusicWindow/MusicWindow';
 import Synth from '../components/Synth.js';
 import Map from '../components/Map.js';
 import ProjectsModal from '../components/ProjectsModal';
 import styled from 'styled-components';
+import getOpenModals from '../utils/getOpenModals'; // Import the helper function
+import useWindowSize from '../hooks/useWindowSize'; // Ensure you have this hook
+import getModalPosition from '../utils/getModalPosition'; // Ensure you have this utility
 
 const IconContainer = styled.button`
   all: unset;
@@ -58,24 +70,82 @@ const Home = () => {
   const [showProjects, setShowProjects] = useState(false);
   const [currentProject, setCurrentProject] = useState(null);
   const canvasRef = useRef(null);
+  const { width, height } = useWindowSize(); // Use the custom hook
 
-  const handleReadMeClick = () => { setShowReadMe(true); };
-  const handleReadMeClose = () => { setShowReadMe(false); };
+  // Determine which modals are open and their order
+  const openModals = getOpenModals({
+    showReadMe,
+    showMusic,
+    showSynth,
+    showMap,
+    showProjects,
+  });
+  const total = openModals.length;
 
-  const handleMusicClick = () => { setShowMusic(true); };
-  const handleMusicClose = () => { setShowMusic(false); };
+  // Function to render each modal with its index and total
+  const renderModal = (modalType) => {
+    const index = openModals.indexOf(modalType);
+    const position = getModalPosition(index, total, width, height); // Calculate position
 
-  const handleSynthClick = () => { setShowSynth(true); };
-  const handleSynthClose = () => { setShowSynth(false); };
+    switch (modalType) {
+      case 'ReadMe':
+        return (
+          <ReadMeWindow
+            onClose={() => setShowReadMe(false)}
+            index={index}
+            total={total}
+            position={position}
+          />
+        );
+      case 'Music':
+        return (
+          <MusicWindow
+            onClose={() => setShowMusic(false)}
+            canvasRef={canvasRef}
+            isOpen={showMusic}
+            index={index}
+            total={total}
+            position={position}
+          />
+        );
+      case 'Synth':
+        return (
+          <Synth
+            onClose={() => setShowSynth(false)}
+            index={index}
+            total={total}
+            position={position}
+          />
+        );
+      case 'Map':
+        return (
+          <Map
+            onClose={() => setShowMap(false)}
+            index={index}
+            total={total}
+            position={position}
+          />
+        );
+      case 'Projects':
+        return (
+          <ProjectsModal
+            onClose={() => {
+              setShowProjects(false);
+              setCurrentProject(null);
+            }}
+            selectProject={setCurrentProject}
+            currentProject={currentProject}
+            index={index}
+            total={total}
+            position={position}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
-  const handleMapClick = () => { setShowMap(true); };
-  const handleMapClose = () => { setShowMap(false); };
-
-  const handleProjectsClick = () => { setShowProjects(true); setCurrentProject(null); };
-  const handleProjectsClose = () => { setShowProjects(false); setCurrentProject(null); };
-
-  const selectProject = (project) => { setCurrentProject(project); };
-
+  // Initialize canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
@@ -106,53 +176,69 @@ const Home = () => {
       <Canvas ref={canvasRef}></Canvas>
 
       <Content>
-        <IconContainer onClick={handleReadMeClick}>
+        <IconContainer onClick={() => setShowReadMe(true)}>
           <Notepad variant="32x32_4" />
           <div>README.txt</div>
         </IconContainer>
 
-        <IconContainer onClick={handleMusicClick}>
+        <IconContainer onClick={() => setShowMusic(true)}>
           <Msacm3210 variant="32x32_4" />
           <div>MyMusicVisualizer.exe</div>
         </IconContainer>
 
-        <IconContainer onClick={handleSynthClick}>
+        <IconContainer onClick={() => setShowSynth(true)}>
           <Mmsys120 variant="32x32_4" />
           <div>MySynthesizer.exe</div>
         </IconContainer>
 
-        <IconContainer onClick={handleMapClick}>
+        <IconContainer onClick={() => setShowMap(true)}>
           <Inetcpl1313 variant="48x48_4" />
           <div>MyMountainFinder.exe</div>
         </IconContainer>
 
-        <IconContainer onClick={handleProjectsClick}>
+        <IconContainer onClick={() => {
+          setShowProjects(true);
+          setCurrentProject(null);
+        }}>
           <Folder variant="32x32_4" />
           <div>MyProjects</div>
         </IconContainer>
 
-        {showReadMe && <ReadMeWindow onClose={handleReadMeClose} />}
-        {showMusic && <MusicWindow onClose={handleMusicClose} canvasRef={canvasRef} isOpen={showMusic} />}
-        {showSynth && <Synth onClose={handleSynthClose} />}
-        {showMap && <Map onClose={handleMapClose} />}
-        {showProjects && (
-          <ProjectsModal 
-            onClose={handleProjectsClose} 
-            selectProject={selectProject} 
-            currentProject={currentProject} 
-          />
-        )}
+        {/* Render all open modals */}
+        {openModals.map((modalType) => (
+          <div key={modalType}>{renderModal(modalType)}</div>
+        ))}
       </Content>
 
       <TaskBar
         list={
           <List>
-            <List.Item icon={<Awfxcg321304 variant="32x32_4" />} onClick={() =>
-              window.open('https://www.linkedin.com/in/micha%C5%82-haj%C5%82asz-9ba5a8224/', '_blank')?.focus()
-            }>LinkedIn</List.Item>
-            <List.Item icon={<Cachevu100 variant="32x32_4" />} onClick={() =>
-              window.open('https://github.com/cheatingthemichal/nextjs-project/', '_blank')?.focus()
-            }>Source Code</List.Item>
+            <List.Item
+              icon={<Awfxcg321304 variant="32x32_4" />}
+              onClick={() =>
+                window
+                  .open(
+                    'https://www.linkedin.com/in/micha%C5%82-haj%C5%82asz-9ba5a8224/',
+                    '_blank'
+                  )
+                  ?.focus()
+              }
+            >
+              LinkedIn
+            </List.Item>
+            <List.Item
+              icon={<Cachevu100 variant="32x32_4" />}
+              onClick={() =>
+                window
+                  .open(
+                    'https://github.com/cheatingthemichal/nextjs-project/',
+                    '_blank'
+                  )
+                  ?.focus()
+              }
+            >
+              Source Code
+            </List.Item>
           </List>
         }
       />

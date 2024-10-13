@@ -1,17 +1,24 @@
+// components/Map.js
+import React from 'react';
 import { List, Modal } from '@react95/core';
 import { Inetcpl1313 } from '@react95/icons';
 
-const Map = ({ onClose }) => {
+const Map = ({ onClose, index, total, position }) => {
   return (
     <Modal
       closeModal={onClose}
-      style={{ width: '300px', height: '200px' }}
-      icon={<Inetcpl1313 variant="48x48_4"/>      }
-      title="MyMountainFinder.exe"
-      defaultPosition={{
-        x: Math.floor(window.innerWidth / 2) + 20,
-        y: Math.floor(window.innerHeight / 2) - 120,
+      style={{
+        width: '300px',
+        height: '200px',
+        left: position.x,
+        top: position.y,
+        maxWidth: '90%',
+        maxHeight: '80%',
+        overflow: 'auto',
+        zIndex: 1000 + index,
       }}
+      icon={<Inetcpl1313 variant="48x48_4" />}
+      title="MyMountainFinder.exe"
       menu={[
         {
           name: 'Options',

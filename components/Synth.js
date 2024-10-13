@@ -1,17 +1,24 @@
-import React, { useState } from 'react';
+// components/Synth.js
+import React from 'react';
 import { List, Modal } from '@react95/core';
 import { Mmsys120 } from '@react95/icons';
-const Synth = ({ onClose }) => {
+
+const Synth = ({ onClose, index, total, position }) => {
   return (
     <Modal
       closeModal={onClose}
-      style={{ width: '300px', height: '200px' }}
-      icon={<Mmsys120 variant="32x32_4"/>}
-      title="MySynthesizer.exe"
-      defaultPosition={{
-        x: Math.floor(window.innerWidth / 2) - 20,
-        y: Math.floor(window.innerHeight / 2) - 360,
+      style={{
+        width: '300px',
+        height: '200px',
+        left: position.x,
+        top: position.y,
+        maxWidth: '90%',       // Ensures responsiveness
+        maxHeight: '80%',
+        overflow: 'auto',
+        zIndex: 1000 + index,  // Stacking order
       }}
+      icon={<Mmsys120 variant="32x32_4" />}
+      title="MySynthesizer.exe"
       menu={[
         {
           name: 'Options',

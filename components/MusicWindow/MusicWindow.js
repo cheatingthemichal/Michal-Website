@@ -4,7 +4,14 @@ import { Computer, Folder, Mplayer15 } from '@react95/icons';
 import ControlElements from './ControlElements';
 import useMusicVisualizer from './useMusicVisualizer';
 
-const MusicWindow = ({ onClose, canvasRef, isOpen }) => {
+const MusicWindow = ({
+  onClose,
+  canvasRef,
+  isOpen,
+  index,
+  total,
+  position,
+}) => {
   const [fileName, setFileName] = useState('');
   const [currentTime, setCurrentTime] = useState(0);
   const [showSongModal, setShowSongModal] = useState(false);
@@ -64,22 +71,31 @@ const MusicWindow = ({ onClose, canvasRef, isOpen }) => {
         stopVisualizer();
         onClose();
       }}
-      style={{ width: '400px', height: 'auto' }}
+      style={{
+        width: '400px',
+        height: 'auto',
+        left: position.x,
+        top: position.y,
+        maxWidth: '90%',
+        maxHeight: '80%',
+        overflow: 'auto',
+        zIndex: 1000 + index,
+      }}
       icon={<Computer variant="16x16_4" />}
       title="MyMusicVisualizer.exe"
-      defaultPosition={{
-        x: Math.floor(window.innerWidth / 2) - 600,
-        y: Math.floor(window.innerHeight / 2) - 380,
-      }}
       menu={[
         {
           name: 'Options',
           list: (
             <List width="200px">
-              <List.Item onClick={() => {
-                stopVisualizer();
-                onClose();
-              }}>Close</List.Item>
+              <List.Item
+                onClick={() => {
+                  stopVisualizer();
+                  onClose();
+                }}
+              >
+                Close
+              </List.Item>
             </List>
           ),
         },
@@ -98,19 +114,30 @@ const MusicWindow = ({ onClose, canvasRef, isOpen }) => {
       {showSongModal && (
         <Modal
           closeModal={handleCloseSongModal}
-          style={{ width: '300px', height: 'auto' }}
+          style={{
+            width: '300px',
+            height: 'auto',
+            left: position.x - 75, // Adjust position relative to parent
+            top: position.y - 195,  // Adjust position relative to parent
+            maxWidth: '90%',
+            maxHeight: '80%',
+            overflow: 'auto',
+            zIndex: 1000 + index + 1, // Ensure it appears above the parent modal
+          }}
           icon={<Folder variant="16x16_4" />}
           title="Choose a Song"
-          defaultPosition={{
-            x: Math.floor(window.innerWidth / 2) - 375,
-            y: Math.floor(window.innerHeight / 2) - 395,
-          }}
+          menu={[]}
         >
           <div style={{ padding: '10px' }}>
             {preloadedSongs.map((song) => (
               <div
                 key={song.url}
-                style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', margin: '5px 0' }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  margin: '5px 0',
+                }}
                 onClick={() => handleSongSelectAndPlay(song.name, song.url)}
               >
                 <Mplayer15 variant="32x32_4" style={{ marginRight: 8 }} />
@@ -120,7 +147,12 @@ const MusicWindow = ({ onClose, canvasRef, isOpen }) => {
           </div>
         </Modal>
       )}
-      <audio id="audio" ref={audioRef} controls style={{ display: 'none' }}></audio>
+      <audio
+        id="audio"
+        ref={audioRef}
+        controls
+        style={{ display: 'none' }}
+      ></audio>
     </Modal>
   );
 };

@@ -1,8 +1,11 @@
+// components/MusicWindow/MusicWindow.js
 import React, { useState, useEffect } from 'react';
 import { List, Modal } from '@react95/core';
 import { Computer, Folder, Mplayer15 } from '@react95/icons';
 import ControlElements from './ControlElements';
 import useMusicVisualizer from './useMusicVisualizer';
+import ReactDOM from 'react-dom';
+
 
 const MusicWindow = ({
   onClose,
@@ -16,7 +19,13 @@ const MusicWindow = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [showSongModal, setShowSongModal] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const { handleFileChange, handleSongSelect, stopVisualizer, audioRef, ...controlHandlers } = useMusicVisualizer(canvasRef);
+  const {
+    handleFileChange,
+    handleSongSelect,
+    stopVisualizer,
+    audioRef,
+    ...controlHandlers
+  } = useMusicVisualizer(canvasRef);
 
   const preloadedSongs = [
     { name: 'Amor', url: '/Amor.mp3' },
@@ -63,7 +72,7 @@ const MusicWindow = ({
         stopVisualizer();
       }
     };
-  }, [isOpen, stopVisualizer]);
+  }, [isOpen, stopVisualizer, audioRef]);
 
   return (
     <Modal
@@ -111,42 +120,45 @@ const MusicWindow = ({
         setIsPlaying={setIsPlaying}
         {...controlHandlers}
       />
-      {showSongModal && (
-        <Modal
-          closeModal={handleCloseSongModal}
-          style={{
-            width: '300px',
-            height: 'auto',
-            left: position.x - 75, // Adjust position relative to parent
-            top: position.y - 195,  // Adjust position relative to parent
-            maxWidth: '90%',
-            maxHeight: '80%',
-            overflow: 'auto',
-            zIndex: 1000 + index + 1, // Ensure it appears above the parent modal
-          }}
-          icon={<Folder variant="16x16_4" />}
-          title="Choose a Song"
-          menu={[]}
-        >
-          <div style={{ padding: '10px' }}>
-            {preloadedSongs.map((song) => (
-              <div
-                key={song.url}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  margin: '5px 0',
-                }}
-                onClick={() => handleSongSelectAndPlay(song.name, song.url)}
-              >
-                <Mplayer15 variant="32x32_4" style={{ marginRight: 8 }} />
-                {song.name}
-              </div>
-            ))}
-          </div>
-        </Modal>
-      )}
+      {showSongModal &&
+        ReactDOM.createPortal(
+          <Modal
+            closeModal={handleCloseSongModal}
+            style={{
+              width: '300px',
+              height: 'auto',
+              left: position.x, // Adjust position as needed
+              top: position.y, // Adjust position as needed
+              maxWidth: '90%',
+              maxHeight: '80%',
+              overflow: 'auto',
+              zIndex: 10000, // Use a high zIndex to ensure it's on top
+              position: 'fixed', // Ensure it's positioned relative to the viewport
+            }}
+            icon={<Folder variant="16x16_4" />}
+            title="Choose a Song"
+            menu={[]}
+          >
+            <div style={{ padding: '10px' }}>
+              {preloadedSongs.map((song) => (
+                <div
+                  key={song.url}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    margin: '5px 0',
+                  }}
+                  onClick={() => handleSongSelectAndPlay(song.name, song.url)}
+                >
+                  <Mplayer15 variant="32x32_4" style={{ marginRight: 8 }} />
+                  {song.name}
+                </div>
+              ))}
+            </div>
+          </Modal>,
+          document.body // Render the modal at the root of the DOM
+        )}
       <audio
         id="audio"
         ref={audioRef}

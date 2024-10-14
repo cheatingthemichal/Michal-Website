@@ -13,7 +13,7 @@ import {
 } from '@react95/icons';
 import ReadMeWindow from '../components/ReadMeWindow';
 import MusicWindow from '../components/MusicWindow/MusicWindow';
-import Synth from '../components/Synth.js';
+import Synth from '../components/SynthWindow/Synth.js';
 import Map from '../components/Map.js';
 import ProjectsModal from '../components/ProjectsModal';
 import styled from 'styled-components';

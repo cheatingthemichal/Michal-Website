@@ -1,23 +1,42 @@
 // components/Synth.js
 import React, { useState, useEffect, useRef } from 'react';
-import { List, Modal, Button } from '@react95/core';
+import { List, Modal, Button, RadioButton, Range } from '@react95/core';
 import { Mmsys120 } from '@react95/icons';
 import styled from 'styled-components';
 
 // Styled Components for better UI management
-const ControlSection = styled.div`
-  margin: 10px 0;
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px; /* Adjusted padding for conciseness */
+  font-size: 12px;
 `;
 
-const ControlLabel = styled.p`
-  margin: 5px 0;
+const ControlRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
-const Slider = styled.input`
-  width: 100%;
+const Label = styled.label`
+  flex: 1;
+  margin-right: 10px;
+`;
+
+const RangeContainer = styled.div`
+  flex: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 `;
 
 const RadioGroup = styled.div`
+  display: flex;
+  gap: 10px;
+`;
+
+const ButtonGroup = styled.div`
   display: flex;
   gap: 10px;
 `;
@@ -50,23 +69,23 @@ const Synth = ({ onClose, index, total, position }) => {
     '86': 349.23, // V - F
     '71': 369.99, // G - F#
     '66': 391.99, // B - G
-    '72': 415.30, // H - G#
-    '78': 440.00, // N - A
-    '74': 466.16, // J - A#
-    '77': 493.88, // M - B
-    '81': 523.25, // Q - C
-    '50': 554.37, // 2 - C#
-    '87': 587.33, // W - D
-    '51': 622.25, // 3 - D#
-    '69': 659.26, // E - E
-    '82': 698.46, // R - F
-    '53': 739.99, // 5 - F#
-    '84': 783.99, // T - G
-    '54': 830.61, // 6 - G#
-    '89': 880.00, // Y - A
-    '55': 932.33, // 7 - A#
-    '85': 987.77, // U - B
-    '73': 1046.50, // I - C
+    '72': 415.3,  // H - G#
+    '78': 440,     // N - A
+    '74': 466.16,  // J - A#
+    '77': 493.88,  // M - B
+    '81': 523.25,  // Q - C
+    '50': 554.37,  // 2 - C#
+    '87': 587.33,  // W - D
+    '51': 622.25,  // 3 - D#
+    '69': 659.26,  // E - E
+    '82': 698.46,  // R - F
+    '53': 739.99,  // 5 - F#
+    '84': 783.99,  // T - G
+    '54': 830.61,  // 6 - G#
+    '89': 880,     // Y - A
+    '55': 932.33,  // 7 - A#
+    '85': 987.77,  // U - B
+    '73': 1046.5,  // I - C
   };
 
   // Initialize AudioContext
@@ -240,193 +259,212 @@ const Synth = ({ onClose, index, total, position }) => {
         },
       ]}
     >
-      <ControlSection>
-        <ControlLabel>Choose waveform:</ControlLabel>
-        <Button
-          onClick={() => setWaveform('sine')}
-          active={waveform === 'sine'}
-          style={{ marginRight: '5px' }}
-        >
-          Sine
-        </Button>
-        <Button
-          onClick={() => setWaveform('sawtooth')}
-          active={waveform === 'sawtooth'}
-          style={{ marginRight: '5px' }}
-        >
-          Sawtooth
-        </Button>
-        <Button
-          onClick={() => setWaveform('?')}
-          active={waveform === '?'}
-        >
-          ?
-        </Button>
-      </ControlSection>
+      <Container>
+        {/* Waveform Selection */}
+        <ControlRow>
+          <Label>Waveform:</Label>
+          <ButtonGroup>
+            <Button
+              onClick={() => setWaveform('sine')}
+              active={waveform === 'sine'}
+              style={{ marginRight: '5px' }}
+            >
+              Sine
+            </Button>
+            <Button
+              onClick={() => setWaveform('sawtooth')}
+              active={waveform === 'sawtooth'}
+              style={{ marginRight: '5px' }}
+            >
+              Sawtooth
+            </Button>
+            <Button
+              onClick={() => setWaveform('?')}
+              active={waveform === '?'}
+            >
+              ?
+            </Button>
+          </ButtonGroup>
+        </ControlRow>
 
-      <ControlSection>
-        <ControlLabel>Additive Mode:</ControlLabel>
-        <RadioGroup>
-          <label>
-            <input
-              type="radio"
+        {/* Additive Mode */}
+        <ControlRow>
+          <Label>Additive Mode:</Label>
+          <RadioGroup>
+            <RadioButton
+              id="additive-off"
+              name="additiveMode"
               value="off"
               checked={additiveMode === 'off'}
               onChange={() => setAdditiveMode('off')}
             />
-            Off
-          </label>
-          <label>
-            <input
-              type="radio"
+            <Label htmlFor="additive-off">Off</Label>
+            <RadioButton
+              id="additive-on"
+              name="additiveMode"
               value="on"
               checked={additiveMode === 'on'}
               onChange={() => setAdditiveMode('on')}
             />
-            On
-          </label>
-        </RadioGroup>
-      </ControlSection>
+            <Label htmlFor="additive-on">On</Label>
+          </RadioGroup>
+        </ControlRow>
 
-      {additiveMode === 'on' && (
-        <>
-          <ControlSection>
-            <ControlLabel>Number of Partials: {numPartials}</ControlLabel>
-            <Slider
-              type="range"
-              min="1"
-              max="100"
-              value={numPartials}
-              onChange={(e) => setNumPartials(parseInt(e.target.value))}
-            />
-          </ControlSection>
-          <ControlSection>
-            <ControlLabel>Distance between Partials: {distPartials}</ControlLabel>
-            <Slider
-              type="range"
-              min="0"
-              max="100"
-              value={distPartials}
-              onChange={(e) => setDistPartials(parseInt(e.target.value))}
-            />
-          </ControlSection>
-        </>
-      )}
+        {/* Additive Controls */}
+        {additiveMode === 'on' && (
+          <>
+            <ControlRow>
+              <Label>Number of Partials: {numPartials}</Label>
+              <RangeContainer>
+                <Range
+                  id="numPartials"
+                  min={1}
+                  max={100}
+                  value={numPartials}
+                  onChange={(e) => setNumPartials(parseInt(e.target.value))}
+                />
+              </RangeContainer>
+            </ControlRow>
+            <ControlRow>
+              <Label>Distance Between Partials: {distPartials}</Label>
+              <RangeContainer>
+                <Range
+                  id="distPartials"
+                  min={0}
+                  max={100}
+                  value={distPartials}
+                  onChange={(e) => setDistPartials(parseInt(e.target.value))}
+                />
+              </RangeContainer>
+            </ControlRow>
+          </>
+        )}
 
-      <ControlSection>
-        <ControlLabel>AM:</ControlLabel>
-        <RadioGroup>
-          <label>
-            <input
-              type="radio"
+        {/* AM Modulation */}
+        <ControlRow>
+          <Label>AM:</Label>
+          <RadioGroup>
+            <RadioButton
+              id="am-off"
+              name="amMode"
               value="off"
               checked={amMode === 'off'}
               onChange={() => setAmMode('off')}
             />
-            Off
-          </label>
-          <label>
-            <input
-              type="radio"
+            <Label htmlFor="am-off">Off</Label>
+            <RadioButton
+              id="am-on"
+              name="amMode"
               value="on"
               checked={amMode === 'on'}
               onChange={() => setAmMode('on')}
             />
-            On
-          </label>
-        </RadioGroup>
-      </ControlSection>
+            <Label htmlFor="am-on">On</Label>
+          </RadioGroup>
+        </ControlRow>
 
-      {amMode === 'on' && (
-        <ControlSection>
-          <ControlLabel>AM Frequency: {amFrequency}</ControlLabel>
-          <Slider
-            type="range"
-            min="0"
-            max="500"
-            value={amFrequency}
-            onChange={(e) => setAmFrequency(parseInt(e.target.value))}
-          />
-        </ControlSection>
-      )}
+        {/* AM Frequency Control */}
+        {amMode === 'on' && (
+          <ControlRow>
+            <Label>AM Frequency: {amFrequency}</Label>
+            <RangeContainer>
+              <Range
+                id="amFrequency"
+                min={0}
+                max={500}
+                value={amFrequency}
+                onChange={(e) => setAmFrequency(parseInt(e.target.value))}
+              />
+            </RangeContainer>
+          </ControlRow>
+        )}
 
-      <ControlSection>
-        <ControlLabel>FM:</ControlLabel>
-        <RadioGroup>
-          <label>
-            <input
-              type="radio"
+        {/* FM Modulation */}
+        <ControlRow>
+          <Label>FM:</Label>
+          <RadioGroup>
+            <RadioButton
+              id="fm-off"
+              name="fmMode"
               value="off"
               checked={fmMode === 'off'}
               onChange={() => setFmMode('off')}
             />
-            Off
-          </label>
-          <label>
-            <input
-              type="radio"
+            <Label htmlFor="fm-off">Off</Label>
+            <RadioButton
+              id="fm-on"
+              name="fmMode"
               value="on"
               checked={fmMode === 'on'}
               onChange={() => setFmMode('on')}
             />
-            On
-          </label>
-        </RadioGroup>
-      </ControlSection>
+            <Label htmlFor="fm-on">On</Label>
+          </RadioGroup>
+        </ControlRow>
 
-      {fmMode === 'on' && (
-        <ControlSection>
-          <ControlLabel>FM Frequency: {fmFrequency}</ControlLabel>
-          <Slider
-            type="range"
-            min="0"
-            max="500"
-            value={fmFrequency}
-            onChange={(e) => setFmFrequency(parseInt(e.target.value))}
-          />
-        </ControlSection>
-      )}
+        {/* FM Frequency Control */}
+        {fmMode === 'on' && (
+          <ControlRow>
+            <Label>FM Frequency: {fmFrequency}</Label>
+            <RangeContainer>
+              <Range
+                id="fmFrequency"
+                min={0}
+                max={500}
+                value={fmFrequency}
+                onChange={(e) => setFmFrequency(parseInt(e.target.value))}
+              />
+            </RangeContainer>
+          </ControlRow>
+        )}
 
-      <ControlSection>
-        <ControlLabel>LFO:</ControlLabel>
-        <RadioGroup>
-          <label>
-            <input
-              type="radio"
+        {/* LFO Modulation */}
+        <ControlRow>
+          <Label>LFO:</Label>
+          <RadioGroup>
+            <RadioButton
+              id="lfo-off"
+              name="lfoMode"
               value="off"
               checked={lfoMode === 'off'}
               onChange={() => setLfoMode('off')}
             />
-            Off
-          </label>
-          <label>
-            <input
-              type="radio"
+            <Label htmlFor="lfo-off">Off</Label>
+            <RadioButton
+              id="lfo-on"
+              name="lfoMode"
               value="on"
               checked={lfoMode === 'on'}
               onChange={() => setLfoMode('on')}
             />
-            On
-          </label>
-        </RadioGroup>
-      </ControlSection>
+            <Label htmlFor="lfo-on">On</Label>
+          </RadioGroup>
+        </ControlRow>
 
-      {lfoMode === 'on' && (
-        <ControlSection>
-          <ControlLabel>LFO Frequency: {lfoFrequency}</ControlLabel>
-          <Slider
-            type="range"
-            min="0"
-            max="10"
-            value={lfoFrequency}
-            onChange={(e) => setLfoFrequency(parseFloat(e.target.value))}
-          />
-        </ControlSection>
-      )}
+        {/* LFO Frequency Control */}
+        {lfoMode === 'on' && (
+          <ControlRow>
+            <Label>LFO Frequency: {lfoFrequency}</Label>
+            <RangeContainer>
+              <Range
+                id="lfoFrequency"
+                min={0}
+                max={10}
+                step={0.1}
+                value={lfoFrequency}
+                onChange={(e) => setLfoFrequency(parseFloat(e.target.value))}
+              />
+            </RangeContainer>
+          </ControlRow>
+        )}
 
-      <ControlSection>
-        <p>Press keys (Z, S, X, D, C, V, G, B, H, N, J, M, Q, 2, W, 3, E, R, 5, T, 6, Y, 7, U, I) to play notes.</p>
-      </ControlSection>
+        {/* Instructions */}
+        <ControlRow>
+          <Label style={{ flex: 1 }}>
+            Press keys (Z, S, X, D, C, V, G, B, H, N, J, M, Q, 2, W, 3, E, R, 5, T, 6, Y, 7, U, I) to play notes.
+          </Label>
+        </ControlRow>
+      </Container>
     </Modal>
   );
 };

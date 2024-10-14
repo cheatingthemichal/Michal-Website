@@ -1,0 +1,496 @@
+[1mdiff --git a/components/SynthWindow/Controls.js b/components/SynthWindow/Controls.js[m
+[1mindex ff42c33..a95a9ef 100644[m
+[1m--- a/components/SynthWindow/Controls.js[m
+[1m+++ b/components/SynthWindow/Controls.js[m
+[36m@@ -1,6 +1,6 @@[m
+ // components/Controls.js[m
+ import React from 'react';[m
+[31m-import { Button, RadioButton, Range } from '@react95/core';[m
+[32m+[m[32mimport { Checkbox, Button, RadioButton, Range } from '@react95/core';[m
+ import {[m
+   Container,[m
+   ControlRow,[m
+[36m@@ -8,6 +8,7 @@[m [mimport {[m
+   RangeContainer,[m
+   RadioGroup,[m
+   ButtonGroup,[m
+[32m+[m[32m  Fieldset,[m
+ } from './styles';[m
+ [m
+ const Controls = ({[m
+[36m@@ -33,6 +34,13 @@[m [mconst Controls = ({[m
+   setLfoFrequency,[m
+   crazy,[m
+   setCrazy,[m
+[32m+[m[32m  // New Bass FM Props[m
+[32m+[m[32m  bassFmMode,[m
+[32m+[m[32m  setBassFmMode,[m
+[32m+[m[32m  bassFmFrequency,[m
+[32m+[m[32m  setBassFmFrequency,[m
+[32m+[m[32m  bassFmDepth,[m
+[32m+[m[32m  setBassFmDepth,[m
+ }) => {[m
+   return ([m
+     <Container>[m
+[36m@@ -150,7 +158,7 @@[m [mconst Controls = ({[m
+       {/* AM Frequency Control */}[m
+       {amMode === 'on' && ([m
+         <ControlRow>[m
+[31m-          <Label>AM Frequency: {amFrequency}</Label>[m
+[32m+[m[32m          <Label>AM Frequency: {amFrequency} Hz</Label>[m
+           <RangeContainer>[m
+             <Range[m
+               id="amFrequency"[m
+[36m@@ -189,7 +197,7 @@[m [mconst Controls = ({[m
+       {/* FM Frequency Control */}[m
+       {fmMode === 'on' && ([m
+         <ControlRow>[m
+[31m-          <Label>FM Frequency: {fmFrequency}</Label>[m
+[32m+[m[32m          <Label>FM Frequency: {fmFrequency} Hz</Label>[m
+           <RangeContainer>[m
+             <Range[m
+               id="fmFrequency"[m
+[36m@@ -202,6 +210,47 @@[m [mconst Controls = ({[m
+         </ControlRow>[m
+       )}[m
+ [m
+[32m+[m[32m      {/* Bass FM Modulation */}[m
+[32m+[m[32m      <Fieldset label="Bass FM Modulation">[m
+[32m+[m[32m        <ControlRow>[m
+[32m+[m[32m          <Checkbox[m
+[32m+[m[32m            checked={bassFmMode === 'on'}[m
+[32m+[m[32m            onChange={(e) => setBassFmMode(e.target.checked ? 'on' : 'off')}[m
+[32m+[m[32m          >[m
+[32m+[m[32m            Enable Bass FM[m
+[32m+[m[32m          </Checkbox>[m
+[32m+[m[32m        </ControlRow>[m
+[32m+[m
+[32m+[m[32m        {bassFmMode === 'on' && ([m
+[32m+[m[32m          <>[m
+[32m+[m[32m            <ControlRow>[m
+[32m+[m[32m              <Label>Bass FM Frequency: {bassFmFrequency} Hz</Label>[m
+[32m+[m[32m              <RangeContainer>[m
+[32m+[m[32m                <Range[m
+[32m+[m[32m                  id="bassFmFrequency"[m
+[32m+[m[32m                  min={50}[m
+[32m+[m[32m                  max={1000}[m
+[32m+[m[32m                  value={bassFmFrequency}[m
+[32m+[m[32m                  onChange={(e) => setBassFmFrequency(parseInt(e.target.value))}[m
+[32m+[m[32m                />[m
+[32m+[m[32m              </RangeContainer>[m
+[32m+[m[32m            </ControlRow>[m
+[32m+[m[32m            <ControlRow>[m
+[32m+[m[32m              <Label>Bass FM Depth: {bassFmDepth}</Label>[m
+[32m+[m[32m              <RangeContainer>[m
+[32m+[m[32m                <Range[m
+[32m+[m[32m                  id="bassFmDepth"[m
+[32m+[m[32m                  min={0}[m
+[32m+[m[32m                  max={500}[m
+[32m+[m[32m                  value={bassFmDepth}[m
+[32m+[m[32m                  onChange={(e) => setBassFmDepth(parseInt(e.target.value))}[m
+[32m+[m[32m                />[m
+[32m+[m[32m              </RangeContainer>[m
+[32m+[m[32m            </ControlRow>[m
+[32m+[m[32m          </>[m
+[32m+[m[32m        )}[m
+[32m+[m[32m      </Fieldset>[m
+[32m+[m
+       {/* LFO Modulation */}[m
+       <ControlRow>[m
+         <Label>LFO:</Label>[m
+[36m@@ -228,7 +277,7 @@[m [mconst Controls = ({[m
+       {/* LFO Frequency Control */}[m
+       {lfoMode === 'on' && ([m
+         <ControlRow>[m
+[31m-          <Label>LFO Frequency: {lfoFrequency}</Label>[m
+[32m+[m[32m          <Label>LFO Frequency: {lfoFrequency} Hz</Label>[m
+           <RangeContainer>[m
+             <Range[m
+               id="lfoFrequency"[m
+[1mdiff --git a/components/SynthWindow/Synth.js b/components/SynthWindow/Synth.js[m
+[1mindex 84f132b..9a300d9 100644[m
+[1m--- a/components/SynthWindow/Synth.js[m
+[1m+++ b/components/SynthWindow/Synth.js[m
+[36m@@ -28,8 +28,15 @@[m [mconst Synth = ({ onClose, position }) => {[m
+   const [crazy, setCrazy] = useState(false); // New state for crazy mode[m
+   const [showKeyboard, setShowKeyboard] = useState(false); // State to toggle keyboard visibility[m
+ [m
+[31m-  // Refs for AudioContext and active oscillators[m
+[32m+[m[32m  // New state variables for Bass FM[m
+[32m+[m[32m  const [bassFmMode, setBassFmMode] = useState('off'); // 'on' or 'off'[m
+[32m+[m[32m  const [bassFmFrequency, setBassFmFrequency] = useState(200); // Frequency for Bass FM[m
+[32m+[m[32m  const [bassFmDepth, setBassFmDepth] = useState(100); // Depth for Bass FM[m
+[32m+[m
+[32m+[m[32m  // Refs for AudioContext, Compressor, and active oscillators/gains[m
+   const audioCtxRef = useRef(null);[m
+[32m+[m[32m  const compressorRef = useRef(null);[m
+[32m+[m[32m  const globalGainRef = useRef(null);[m
+   const activeOscillatorsRef = useRef({});[m
+   const activeGainsRef = useRef({});[m
+ [m
+[36m@@ -68,18 +75,23 @@[m [mconst Synth = ({ onClose, position }) => {[m
+     return acc;[m
+   }, {});[m
+ [m
+[31m-  // Initialize AudioContext[m
+[32m+[m[32m  // Initialize AudioContext and Compressor[m
+   useEffect(() => {[m
+[32m+[m[32m    // Initialize AudioContext[m
+     audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();[m
+     const audioCtx = audioCtxRef.current;[m
+ [m
+[31m-    // Create global gain and compressor[m
+[31m-    const globalGain = audioCtx.createGain();[m
+[31m-    globalGain.connect(audioCtx.destination);[m
+[32m+[m[32m    // Create Global Gain Node[m
+[32m+[m[32m    globalGainRef.current = audioCtx.createGain();[m
+[32m+[m[32m    globalGainRef.current.connect(audioCtx.destination);[m
+ [m
+[31m-    const compressor = audioCtx.createDynamicsCompressor();[m
+[31m-    compressor.threshold.setValueAtTime(-50, audioCtx.currentTime);[m
+[31m-    compressor.connect(globalGain);[m
+[32m+[m[32m    // Create Compressor and connect to Global Gain[m
+[32m+[m[32m    compressorRef.current = audioCtx.createDynamicsCompressor();[m
+[32m+[m[32m    compressorRef.current.threshold.setValueAtTime(-50, audioCtx.currentTime);[m
+[32m+[m[32m    compressorRef.current.ratio.setValueAtTime(12, audioCtx.currentTime); // Higher ratio for more compression[m
+[32m+[m[32m    compressorRef.current.attack.setValueAtTime(0.003, audioCtx.currentTime); // Fast attack[m
+[32m+[m[32m    compressorRef.current.release.setValueAtTime(0.25, audioCtx.currentTime); // Moderate release[m
+[32m+[m[32m    compressorRef.current.connect(globalGainRef.current);[m
+ [m
+     // Event listeners for keyboard[m
+     const handleKeyDown = (event) => {[m
+[36m@@ -91,11 +103,13 @@[m [mconst Synth = ({ onClose, position }) => {[m
+           playNote([m
+             keyCode,[m
+             keyboardFrequencyMap[keyCode],[m
+[31m-            additiveMode === 'on' ? numPartials : 1,[m
+[31m-            additiveMode === 'on' ? distPartials : 0,[m
+[31m-            amMode === 'on' ? amFrequency : 0,[m
+[31m-            fmMode === 'on' ? fmFrequency : 0,[m
+[31m-            lfoMode === 'on' ? lfoFrequency : 0[m
+[32m+[m[32m            additiveMode === 'on' ? parseInt(numPartials) : 1,[m
+[32m+[m[32m            additiveMode === 'on' ? parseInt(distPartials) : 0,[m
+[32m+[m[32m            amMode === 'on' ? parseFloat(amFrequency) : 0,[m
+[32m+[m[32m            fmMode === 'on' ? parseFloat(fmFrequency) : 0,[m
+[32m+[m[32m            lfoMode === 'on' ? parseFloat(lfoFrequency) : 0,[m
+[32m+[m[32m            bassFmMode === 'on' ? parseFloat(bassFmFrequency) : 0,[m
+[32m+[m[32m            bassFmMode === 'on' ? parseFloat(bassFmDepth) : 0[m
+           );[m
+         }[m
+       }[m
+[36m@@ -111,6 +125,7 @@[m [mconst Synth = ({ onClose, position }) => {[m
+     window.addEventListener('keydown', handleKeyDown);[m
+     window.addEventListener('keyup', handleKeyUp);[m
+ [m
+[32m+[m[32m    // Clean up on unmount[m
+     return () => {[m
+       window.removeEventListener('keydown', handleKeyDown);[m
+       window.removeEventListener('keyup', handleKeyUp);[m
+[36m@@ -128,55 +143,30 @@[m [mconst Synth = ({ onClose, position }) => {[m
+     lfoMode,[m
+     lfoFrequency,[m
+     crazy,[m
+[32m+[m[32m    bassFmMode,[m
+[32m+[m[32m    bassFmFrequency,[m
+[32m+[m[32m    bassFmDepth,[m
+     keyboardFrequencyMap,[m
+   ]);[m
+ [m
+   // Function to play a note[m
+[31m-  const playNote = (key, frequency, numPartials, distPartials, amFreq, fmFreq, lfoFreq) => {[m
+[32m+[m[32m  const playNote = ([m
+[32m+[m[32m    key,[m
+[32m+[m[32m    frequency,[m
+[32m+[m[32m    numPartials,[m
+[32m+[m[32m    distPartials,[m
+[32m+[m[32m    amFreq,[m
+[32m+[m[32m    fmFreq,[m
+[32m+[m[32m    lfoFreq,[m
+[32m+[m[32m    bassFmFreq,[m
+[32m+[m[32m    bassFmDpth[m
+[32m+[m[32m  ) => {[m
+     const audioCtx = audioCtxRef.current;[m
+ [m
+[32m+[m[32m    // Initialize arrays for oscillators and gains if not present[m
+     activeOscillatorsRef.current[key] = [];[m
+     activeGainsRef.current[key] = [];[m
+ [m
+[31m-    // AM Modulation[m
+[31m-    let amMod = null;[m
+[31m-    if (amFreq > 0) {[m
+[31m-      amMod = audioCtx.createOscillator();[m
+[31m-      amMod.frequency.value = amFreq;[m
+[31m-      const amGain = audioCtx.createGain();[m
+[31m-      amGain.gain.value = 0.5;[m
+[31m-      amMod.connect(amGain).connect(audioCtx.createGain());[m
+[31m-      amMod.start();[m
+[31m-      activeOscillatorsRef.current[key].push(amMod);[m
+[31m-      activeGainsRef.current[key].push(amGain);[m
+[31m-    }[m
+[31m-[m
+[31m-    // FM Modulation[m
+[31m-    let fmMod = null;[m
+[31m-    if (fmFreq > 0) {[m
+[31m-      fmMod = audioCtx.createOscillator();[m
+[31m-      fmMod.frequency.value = fmFreq;[m
+[31m-      const fmGain = audioCtx.createGain();[m
+[31m-      fmGain.gain.value = 100;[m
+[31m-      fmMod.connect(fmGain).connect(audioCtx.destination);[m
+[31m-      fmMod.start();[m
+[31m-      activeOscillatorsRef.current[key].push(fmMod);[m
+[31m-      activeGainsRef.current[key].push(fmGain);[m
+[31m-    }[m
+[31m-[m
+[31m-    // LFO[m
+[31m-    let lfo = null;[m
+[31m-    if (lfoFreq > 0) {[m
+[31m-      lfo = audioCtx.createOscillator();[m
+[31m-      lfo.frequency.value = lfoFreq;[m
+[31m-      const lfoGain = audioCtx.createGain();[m
+[31m-      lfoGain.gain.value = 0.5;[m
+[31m-      lfo.connect(lfoGain).connect(audioCtx.destination);[m
+[31m-      lfo.start();[m
+[31m-      activeOscillatorsRef.current[key].push(lfo);[m
+[31m-      activeGainsRef.current[key].push(lfoGain);[m
+[31m-    }[m
+[31m-[m
+     // Create oscillators for each partial[m
+     const oscillators = [];[m
+     for (let i = 0; i < numPartials; i++) {[m
+[36m@@ -187,22 +177,109 @@[m [mconst Synth = ({ onClose, position }) => {[m
+       activeOscillatorsRef.current[key].push(osc);[m
+     }[m
+ [m
+[31m-    // Create gain node[m
+[32m+[m[32m    // Create Gain Node for the main signal[m
+     const gainNode = audioCtx.createGain();[m
+     gainNode.gain.setValueAtTime(0, audioCtx.currentTime);[m
+[31m-    gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.1);[m
+[32m+[m[32m    gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.1); // Fade in[m
+ [m
+[31m-    // Connect oscillators to gain node[m
+[32m+[m[32m    // Start oscillators and connect to gain node[m
+     oscillators.forEach((osc) => {[m
+       osc.connect(gainNode);[m
+       osc.start();[m
+     });[m
+ [m
+[31m-    // Connect gain node to compressor[m
+[31m-    gainNode.connect(audioCtx.destination);[m
+[32m+[m[32m    // Connect Gain Node based on Bass FM Mode[m
+[32m+[m[32m    if (bassFmMode === 'on') {[m
+[32m+[m[32m      // When Bass FM is ON, connect directly to destination[m
+[32m+[m[32m      gainNode.connect(audioCtx.destination);[m
+[32m+[m[32m    } else {[m
+[32m+[m[32m      // When Bass FM is OFF, connect to compressor[m
+[32m+[m[32m      if (compressorRef.current) {[m
+[32m+[m[32m        gainNode.connect(compressorRef.current);[m
+[32m+[m[32m      } else {[m
+[32m+[m[32m        gainNode.connect(audioCtx.destination);[m
+[32m+[m[32m      }[m
+[32m+[m[32m    }[m
+ [m
+[31m-    // Store gain node[m
+[32m+[m[32m    // Store Gain Node[m
+     activeGainsRef.current[key].push(gainNode);[m
+[32m+[m
+[32m+[m[32m    // Standard FM Modulation[m
+[32m+[m[32m    if (fmFreq > 0) {[m
+[32m+[m[32m      const fmMod = audioCtx.createOscillator();[m
+[32m+[m[32m      fmMod.frequency.value = fmFreq;[m
+[32m+[m
+[32m+[m[32m      const fmGain = audioCtx.createGain();[m
+[32m+[m[32m      fmGain.gain.value = 100; // Modulation index[m
+[32m+[m
+[32m+[m[32m      fmMod.connect(fmGain);[m
+[32m+[m[32m      oscillators.forEach((osc) => {[m
+[32m+[m[32m        fmGain.connect(osc.frequency);[m
+[32m+[m[32m      });[m
+[32m+[m
+[32m+[m[32m      fmMod.start();[m
+[32m+[m
+[32m+[m[32m      activeOscillatorsRef.current[key].push(fmMod);[m
+[32m+[m[32m      activeGainsRef.current[key].push(fmGain);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // Bass FM Modulation[m
+[32m+[m[32m    if (bassFmFreq > 0 && bassFmDpth > 0) {[m
+[32m+[m[32m      const bassFmMod = audioCtx.createOscillator();[m
+[32m+[m[32m      bassFmMod.frequency.value = bassFmFreq;[m
+[32m+[m
+[32m+[m[32m      const bassFmGain = audioCtx.createGain();[m
+[32m+[m[32m      bassFmGain.gain.value = bassFmDpth; // Modulation depth for Bass FM[m
+[32m+[m
+[32m+[m[32m      bassFmMod.connect(bassFmGain);[m
+[32m+[m
+[32m+[m[32m      // Define how many partials are considered bass (e.g., first 5)[m
+[32m+[m[32m      const bassPartialCount = Math.min(5, oscillators.length);[m
+[32m+[m[32m      const bassOscillators = oscillators.slice(0, bassPartialCount);[m
+[32m+[m
+[32m+[m[32m      bassOscillators.forEach((osc) => {[m
+[32m+[m[32m        bassFmGain.connect(osc.frequency);[m
+[32m+[m[32m      });[m
+[32m+[m
+[32m+[m[32m      bassFmMod.start();[m
+[32m+[m
+[32m+[m[32m      activeOscillatorsRef.current[key].push(bassFmMod);[m
+[32m+[m[32m      activeGainsRef.current[key].push(bassFmGain);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // AM Modulation[m
+[32m+[m[32m    if (amFreq > 0) {[m
+[32m+[m[32m      const amMod = audioCtx.createOscillator();[m
+[32m+[m[32m      amMod.frequency.value = amFreq;[m
+[32m+[m
+[32m+[m[32m      const amGain = audioCtx.createGain();[m
+[32m+[m[32m      amGain.gain.value = 0.5; // Modulation depth for AM[m
+[32m+[m
+[32m+[m[32m      amMod.connect(amGain);[m
+[32m+[m[32m      amGain.connect(gainNode.gain); // Modulate the gainNode's gain[m
+[32m+[m
+[32m+[m[32m      amMod.start();[m
+[32m+[m
+[32m+[m[32m      activeOscillatorsRef.current[key].push(amMod);[m
+[32m+[m[32m      activeGainsRef.current[key].push(amGain);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // LFO Modulation[m
+[32m+[m[32m    if (lfoFreq > 0) {[m
+[32m+[m[32m      const lfo = audioCtx.createOscillator();[m
+[32m+[m[32m      lfo.frequency.value = lfoFreq;[m
+[32m+[m
+[32m+[m[32m      const lfoGain = audioCtx.createGain();[m
+[32m+[m[32m      lfoGain.gain.value = 0.5; // Modulation depth for LFO[m
+[32m+[m
+[32m+[m[32m      lfo.connect(lfoGain);[m
+[32m+[m[32m      lfoGain.connect(gainNode.gain); // Modulate the gainNode's gain[m
+[32m+[m
+[32m+[m[32m      lfo.start();[m
+[32m+[m
+[32m+[m[32m      activeOscillatorsRef.current[key].push(lfo);[m
+[32m+[m[32m      activeGainsRef.current[key].push(lfoGain);[m
+[32m+[m[32m    }[m
+   };[m
+ [m
+   // Function to stop a note[m
+[36m@@ -214,7 +291,7 @@[m [mconst Synth = ({ onClose, position }) => {[m
+     gainNodes.forEach((gainNode) => {[m
+       gainNode.gain.cancelScheduledValues(audioCtx.currentTime);[m
+       gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);[m
+[31m-      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);[m
+[32m+[m[32m      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3); // Fade out[m
+     });[m
+ [m
+     oscillators.forEach((osc) => {[m
+[36m@@ -241,7 +318,10 @@[m [mconst Synth = ({ onClose, position }) => {[m
+       currentIndex--;[m
+ [m
+       // And swap it with the current element.[m
+[31m-      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];[m
+[32m+[m[32m      [array[currentIndex], array[randomIndex]] = [[m
+[32m+[m[32m        array[randomIndex],[m
+[32m+[m[32m        array[currentIndex],[m
+[32m+[m[32m      ];[m
+     }[m
+ [m
+     return array;[m
+[36m@@ -261,11 +341,13 @@[m [mconst Synth = ({ onClose, position }) => {[m
+         playNote([m
+           virtualKey,[m
+           selectedKey.frequency,[m
+[31m-          additiveMode === 'on' ? numPartials : 1,[m
+[31m-          additiveMode === 'on' ? distPartials : 0,[m
+[31m-          amMode === 'on' ? amFrequency : 0,[m
+[31m-          fmMode === 'on' ? fmFrequency : 0,[m
+[31m-          lfoMode === 'on' ? lfoFrequency : 0[m
+[32m+[m[32m          additiveMode === 'on' ? parseInt(numPartials) : 1,[m
+[32m+[m[32m          additiveMode === 'on' ? parseInt(distPartials) : 0,[m
+[32m+[m[32m          amMode === 'on' ? parseFloat(amFrequency) : 0,[m
+[32m+[m[32m          fmMode === 'on' ? parseFloat(fmFrequency) : 0,[m
+[32m+[m[32m          lfoMode === 'on' ? parseFloat(lfoFrequency) : 0,[m
+[32m+[m[32m          bassFmMode === 'on' ? parseFloat(bassFmFrequency) : 0,[m
+[32m+[m[32m          bassFmMode === 'on' ? parseFloat(bassFmDepth) : 0[m
+         );[m
+ [m
+         // Schedule stopping the note after a short duration[m
+[36m@@ -276,6 +358,7 @@[m [mconst Synth = ({ onClose, position }) => {[m
+     }[m
+   };[m
+ [m
+[32m+[m[32m  // Handlers for Virtual Keyboard[m
+   const handleVirtualKeyDown = (key) => {[m
+     if (crazy) {[m
+       playCrazy();[m
+[36m@@ -285,17 +368,18 @@[m [mconst Synth = ({ onClose, position }) => {[m
+         playNote([m
+           virtualKey,[m
+           key.frequency,[m
+[31m-          additiveMode === 'on' ? numPartials : 1,[m
+[31m-          additiveMode === 'on' ? distPartials : 0,[m
+[31m-          amMode === 'on' ? amFrequency : 0,[m
+[31m-          fmMode === 'on' ? fmFrequency : 0,[m
+[31m-          lfoMode === 'on' ? lfoFrequency : 0[m
+[32m+[m[32m          additiveMode === 'on' ? parseInt(numPartials) : 1,[m
+[32m+[m[32m          additiveMode === 'on' ? parseInt(distPartials) : 0,[m
+[32m+[m[32m          amMode === 'on' ? parseFloat(amFrequency) : 0,[m
+[32m+[m[32m          fmMode === 'on' ? parseFloat(fmFrequency) : 0,[m
+[32m+[m[32m          lfoMode === 'on' ? parseFloat(lfoFrequency) : 0,[m
+[32m+[m[32m          bassFmMode === 'on' ? parseFloat(bassFmFrequency) : 0,[m
+[32m+[m[32m          bassFmMode === 'on' ? parseFloat(bassFmDepth) : 0[m
+         );[m
+       }[m
+     }[m
+   };[m
+ [m
+[31m-  // Function to handle virtual key release[m
+   const handleVirtualKeyUp = (key) => {[m
+     const virtualKey = `virtual-${key.note}`;[m
+     if (activeOscillatorsRef.current[virtualKey]) {[m
+[36m@@ -354,6 +438,13 @@[m [mconst Synth = ({ onClose, position }) => {[m
+           setLfoFrequency={setLfoFrequency}[m
+           crazy={crazy}[m
+           setCrazy={setCrazy}[m
+[32m+[m[32m          // New Bass FM Controls[m
+[32m+[m[32m          bassFmMode={bassFmMode}[m
+[32m+[m[32m          setBassFmMode={setBassFmMode}[m
+[32m+[m[32m          bassFmFrequency={bassFmFrequency}[m
+[32m+[m[32m          setBassFmFrequency={setBassFmFrequency}[m
+[32m+[m[32m          bassFmDepth={bassFmDepth}[m
+[32m+[m[32m          setBassFmDepth={setBassFmDepth}[m
+         />[m
+ [m
+         {/* Instructions */}[m
+[36m@@ -380,4 +471,4 @@[m [mconst Synth = ({ onClose, position }) => {[m
+   );[m
+ };[m
+ [m
+[31m-export default Synth;[m
+\ No newline at end of file[m
+[32m+[m[32mexport default Synth;[m
+[1mdiff --git a/components/SynthWindow/styles.js b/components/SynthWindow/styles.js[m
+[1mindex 0aff37d..df9b5e2 100644[m
+[1m--- a/components/SynthWindow/styles.js[m
+[1m+++ b/components/SynthWindow/styles.js[m
+[36m@@ -85,4 +85,20 @@[m [mexport const Instructions = styled.div`[m
+   margin-top: 10px;[m
+   font-size: 12px;[m
+   color: #555;[m
+[31m-`;[m
+\ No newline at end of file[m
+[32m+[m[32m`;[m
+[32m+[m
+[32m+[m[32m/* New Fieldset Styled Component */[m
+[32m+[m[32mexport const Fieldset = styled.fieldset`[m
+[32m+[m[32m  border: 1px solid #ccc;[m
+[32m+[m[32m  padding: 10px;[m
+[32m+[m[32m  margin: 10px 0;[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  flex-direction: column;[m
+[32m+[m[32m  gap: 8px;[m
+[32m+[m[32m`;[m
+[32m+[m
+[32m+[m[32mexport const CheckboxLabel = styled.label`[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  gap: 5px;[m
+[32m+[m[32m`;[m

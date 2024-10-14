@@ -33,6 +33,8 @@ const Controls = ({
   setLfoFrequency,
   crazy,
   setCrazy,
+  distortedFmIntensity,
+  setDistortedFmIntensity,
 }) => {
   return (
     <Container>
@@ -188,18 +190,35 @@ const Controls = ({
 
       {/* FM Frequency Control */}
       {fmMode === 'on' && (
-        <ControlRow>
-          <Label>FM Frequency: {fmFrequency}</Label>
-          <RangeContainer>
-            <Range
-              id="fmFrequency"
-              min={0}
-              max={500}
-              value={fmFrequency}
-              onChange={(e) => setFmFrequency(parseInt(e.target.value))}
-            />
-          </RangeContainer>
-        </ControlRow>
+        <>
+          <ControlRow>
+            <Label>FM Frequency: {fmFrequency}</Label>
+            <RangeContainer>
+              <Range
+                id="fmFrequency"
+                min={0}
+                max={500}
+                value={fmFrequency}
+                onChange={(e) => setFmFrequency(parseInt(e.target.value))}
+              />
+            </RangeContainer>
+          </ControlRow>
+
+          {/* Distorted FM Intensity */}
+          <ControlRow>
+            <Label>Bass Distortion Intensity: {distortedFmIntensity}</Label>
+            <RangeContainer>
+              <Range
+                id="distortedFmIntensity"
+                min={0}
+                max={1}
+                step={0.01}
+                value={distortedFmIntensity}
+                onChange={(e) => setDistortedFmIntensity(parseFloat(e.target.value))}
+              />
+            </RangeContainer>
+          </ControlRow>
+        </>
       )}
 
       {/* LFO Modulation */}

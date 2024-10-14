@@ -550,7 +550,7 @@ const Synth = ({ onClose, position }) => {
     <Modal
       closeModal={onClose}
       style={{
-        width: (showKeyboard && isTwoRows) ? '800px' : '600px',
+        width: (showKeyboard && !isTwoRows) ? '800px' : '600px',
         height: 'auto',
         left: position.x,
         top: position.y,
@@ -616,7 +616,7 @@ const Synth = ({ onClose, position }) => {
           
           {showKeyboard && (
             <ToggleButton onClick={() => setIsTwoRows(!isTwoRows)}>
-              {isTwoRows ? 'Make Two Rows' : 'Make One Row'}
+              {isTwoRows ? 'Make One Row' : 'Make Two Rows'}
             </ToggleButton>
           )}
         </ButtonContainer>

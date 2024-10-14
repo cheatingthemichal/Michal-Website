@@ -9,7 +9,7 @@ const VirtualKeyboard = ({ keys, handleVirtualKeyDown, handleVirtualKeyUp, activ
   const secondOctave = keys.filter((key) => key.note.endsWith('5') || key.note === 'C6');
 
   return (
-    <VirtualKeyboardContainer style={{ flexDirection: isTwoRows ? 'row' : 'column' }}>
+    <VirtualKeyboardContainer style={{ flexDirection: isTwoRows ? 'column' : 'row' }}>
       <OctaveContainer>
         <WhiteKeys
           keys={firstOctave.filter((key) => key.type === 'white')}

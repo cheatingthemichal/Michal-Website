@@ -55,11 +55,14 @@ export const StyledButton = styled(Button)`
 
 export const VirtualKeyboardContainer = styled.div`
   width: 100%;
+  max-width: 600px; /* Adjust this based on your modal's width */
+  margin: auto; /* Center horizontally */
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   user-select: none;
-  position: relative; /* Ensure proper positioning context for absolute children */
+  position: relative;
 `;
 
 export const WhiteKeysRow = styled.div`

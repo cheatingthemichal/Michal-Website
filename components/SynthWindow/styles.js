@@ -38,11 +38,12 @@ export const ButtonGroup = styled.div`
 `;
 
 export const VirtualKeyboardContainer = styled.div`
-  position: relative;
   width: 100%;
-  height: 200px;
-  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   user-select: none;
+  position: relative; /* Ensure proper positioning context for absolute children */
 `;
 
 export const WhiteKeysRow = styled.div`
@@ -69,11 +70,15 @@ export const BlackKeyStyled = styled.div`
   border: 1px solid #333;
   border-radius: 4px;
   position: absolute;
-  top: 0;
   z-index: 2;
   cursor: pointer;
-  pointer-events: auto;
   box-shadow: ${({ active }) => (active ? 'inset 0px 0px 5px #fff' : 'none')};
+`;
+
+export const OctaveContainer = styled.div`
+  position: relative; /* Relative positioning for absolute children */
+  display: flex;
+  flex-direction: column;
 `;
 
 export const Instructions = styled.div`

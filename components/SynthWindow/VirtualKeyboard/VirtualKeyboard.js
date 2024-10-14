@@ -1,6 +1,6 @@
 // components/VirtualKeyboard/VirtualKeyboard.js
 import React from 'react';
-import { VirtualKeyboardContainer } from '../styles';
+import { VirtualKeyboardContainer, OctaveContainer } from '../styles';
 import WhiteKeys from './WhiteKeys';
 import BlackKeys from './BlackKeys';
 
@@ -17,32 +17,36 @@ const VirtualKeyboard = ({
   return (
     <VirtualKeyboardContainer>
       {/* First Octave */}
-      <WhiteKeys
-        keys={firstOctave.filter((key) => key.type === 'white')}
-        handleKeyDown={handleVirtualKeyDown}
-        handleKeyUp={handleVirtualKeyUp}
-        activeOscillators={activeOscillators}
-      />
-      <BlackKeys
-        keys={firstOctave.filter((key) => key.type === 'black')}
-        handleKeyDown={handleVirtualKeyDown}
-        handleKeyUp={handleVirtualKeyUp}
-        activeOscillators={activeOscillators}
-      />
+      <OctaveContainer>
+        <WhiteKeys
+          keys={firstOctave.filter((key) => key.type === 'white')}
+          handleKeyDown={handleVirtualKeyDown}
+          handleKeyUp={handleVirtualKeyUp}
+          activeOscillators={activeOscillators}
+        />
+        <BlackKeys
+          keys={firstOctave.filter((key) => key.type === 'black')}
+          handleKeyDown={handleVirtualKeyDown}
+          handleKeyUp={handleVirtualKeyUp}
+          activeOscillators={activeOscillators}
+        />
+      </OctaveContainer>
 
       {/* Second Octave */}
-      <WhiteKeys
-        keys={secondOctave.filter((key) => key.type === 'white')}
-        handleKeyDown={handleVirtualKeyDown}
-        handleKeyUp={handleVirtualKeyUp}
-        activeOscillators={activeOscillators}
-      />
-      <BlackKeys
-        keys={secondOctave.filter((key) => key.type === 'black')}
-        handleKeyDown={handleVirtualKeyDown}
-        handleKeyUp={handleVirtualKeyUp}
-        activeOscillators={activeOscillators}
-      />
+      <OctaveContainer>
+        <WhiteKeys
+          keys={secondOctave.filter((key) => key.type === 'white')}
+          handleKeyDown={handleVirtualKeyDown}
+          handleKeyUp={handleVirtualKeyUp}
+          activeOscillators={activeOscillators}
+        />
+        <BlackKeys
+          keys={secondOctave.filter((key) => key.type === 'black')}
+          handleKeyDown={handleVirtualKeyDown}
+          handleKeyUp={handleVirtualKeyUp}
+          activeOscillators={activeOscillators}
+        />
+      </OctaveContainer>
     </VirtualKeyboardContainer>
   );
 };

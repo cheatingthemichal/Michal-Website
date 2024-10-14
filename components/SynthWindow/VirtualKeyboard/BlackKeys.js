@@ -2,20 +2,32 @@
 import React from 'react';
 import { BlackKeyStyled } from '../styles';
 
-const BlackKeys = ({ keys, handleKeyDown, handleKeyUp, activeOscillators }) => {
+// Define the left offsets for each black key within a single octave
+const blackKeyOffsets = {
+  'C#': 33,
+  'D#': 77,
+  'F#': 165,
+  'G#': 209,
+  'A#': 253,
+};
+
+const BlackKeys = ({ keys, handleKeyDown, handleKeyUp, activeOscillators}) => {
   return (
     <>
-      {keys.map((key, index) => {
-        // Determine the position of the black key relative to white keys
-        // Adjust the left position based on the white key index
-        // Assuming each white key is 42px wide (40px + 2px margin on each side)
-        const whiteKeyIndex = Math.floor(index / 2); // Simple approximation
-        const leftOffset = whiteKeyIndex * 42 + 30; // Adjust as needed for alignment
+      {keys.map((key) => {
+        // Extract the note name without the octave number (e.g., 'C#4' -> 'C#')
+        const noteName = key.note.slice(0, -1);
+
+        // Get the base left offset for the note within the octave
+        const baseOffset = blackKeyOffsets[noteName] || 0;
+
+        // Total left offset is base offset (no octave shift)
+        const leftOffset = baseOffset;
 
         return (
           <BlackKeyStyled
             key={key.note}
-            style={{ left: `${leftOffset}px` }}
+            style={{ left: `${leftOffset}px`}}
             onMouseDown={() => handleKeyDown(key)}
             onMouseUp={() => handleKeyUp(key)}
             onMouseLeave={() => handleKeyUp(key)}

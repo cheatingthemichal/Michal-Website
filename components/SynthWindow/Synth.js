@@ -276,19 +276,22 @@ const Synth = ({ onClose, index, total, position }) => {
     }
   };
 
-  // Function to handle virtual key press
   const handleVirtualKeyDown = (key) => {
-    const virtualKey = `virtual-${key.note}`;
-    if (!activeOscillatorsRef.current[virtualKey]) {
-      playNote(
-        virtualKey,
-        key.frequency,
-        additiveMode === 'on' ? numPartials : 1,
-        additiveMode === 'on' ? distPartials : 0,
-        amMode === 'on' ? amFrequency : 0,
-        fmMode === 'on' ? fmFrequency : 0,
-        lfoMode === 'on' ? lfoFrequency : 0
-      );
+    if (crazy) {
+      playCrazy();
+    } else {
+      const virtualKey = `virtual-${key.note}`;
+      if (!activeOscillatorsRef.current[virtualKey]) {
+        playNote(
+          virtualKey,
+          key.frequency,
+          additiveMode === 'on' ? numPartials : 1,
+          additiveMode === 'on' ? distPartials : 0,
+          amMode === 'on' ? amFrequency : 0,
+          fmMode === 'on' ? fmFrequency : 0,
+          lfoMode === 'on' ? lfoFrequency : 0
+        );
+      }
     }
   };
 

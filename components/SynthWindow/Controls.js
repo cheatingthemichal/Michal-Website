@@ -1,6 +1,6 @@
 // components/Controls.js
 import React from 'react';
-import { Button, RadioButton, Range } from '@react95/core';
+import { RadioButton, Range } from '@react95/core';
 import {
   Container,
   ControlRow,
@@ -8,11 +8,14 @@ import {
   RangeContainer,
   RadioGroup,
   ButtonGroup,
+  StyledButton
 } from './styles';
 
 const Controls = ({
   waveform,
   setWaveform,
+  pulseWidth,
+  setPulseWidth,
   additiveMode,
   setAdditiveMode,
   numPartials,
@@ -42,36 +45,78 @@ const Controls = ({
       <ControlRow>
         <Label>Waveform:</Label>
         <ButtonGroup>
-          <Button
+          <StyledButton
             onClick={() => {
               setWaveform('sine');
               setCrazy(false);
             }}
             active={waveform === 'sine'}
-            style={{ marginRight: '5px' }}
           >
             Sine
-          </Button>
-          <Button
+          </StyledButton>
+          <StyledButton
             onClick={() => {
               setWaveform('sawtooth');
               setCrazy(false);
             }}
             active={waveform === 'sawtooth'}
-            style={{ marginRight: '5px' }}
           >
-            Sawtooth
-          </Button>
-          <Button
+            Saw
+          </StyledButton>
+          <StyledButton
+            onClick={() => {
+              setWaveform('square');
+              setCrazy(false);
+            }}
+            active={waveform === 'square'}
+          >
+            Square
+          </StyledButton>
+          <StyledButton
+            onClick={() => {
+              setWaveform('triangle');
+              setCrazy(false);
+            }}
+            active={waveform === 'triangle'}
+          >
+            Triangle
+          </StyledButton>
+          <StyledButton
+            onClick={() => {
+              setWaveform('pulse');
+              setCrazy(false);
+            }}
+            active={waveform === 'pulse'}
+          >
+            Pulse
+          </StyledButton>
+          <StyledButton
             onClick={() => {
               setCrazy(!crazy);
             }}
             active={crazy}
           >
             ?
-          </Button>
+          </StyledButton>
         </ButtonGroup>
       </ControlRow>
+
+      {/* Pulse Width Control (only shown when pulse waveform is selected) */}
+      {waveform === 'pulse' && (
+        <ControlRow>
+          <Label>Pulse Width: {pulseWidth.toFixed(2)}</Label>
+          <RangeContainer>
+            <Range
+              id="pulseWidth"
+              min={0.1}
+              max={0.9}
+              step={0.01}
+              value={pulseWidth}
+              onChange={(e) => setPulseWidth(parseFloat(e.target.value))}
+            />
+          </RangeContainer>
+        </ControlRow>
+      )}
 
       {/* Additive Mode */}
       <ControlRow>

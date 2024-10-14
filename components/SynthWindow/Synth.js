@@ -45,6 +45,7 @@ const ToggleButton = styled(Button)`
 const Synth = ({ onClose, position }) => {
   // State variables
   const [waveform, setWaveform] = useState('sine');
+  const [pulseWidth, setPulseWidth] = useState(0.5);
   const [additiveMode, setAdditiveMode] = useState('off');
   const [numPartials, setNumPartials] = useState(50);
   const [distPartials, setDistPartials] = useState(50);
@@ -84,6 +85,7 @@ const Synth = ({ onClose, position }) => {
   useEffect(() => {
     parametersRef.current = {
       waveform,
+      pulseWidth,
       additiveMode,
       numPartials,
       distPartials,
@@ -104,9 +106,10 @@ const Synth = ({ onClose, position }) => {
     Object.values(activeOscillatorsRef.current).forEach((oscList) => {
       // Update main oscillators' waveform
       oscList.mainOscillators.forEach((osc) => {
-        if (osc.type !== currentWaveform) {
-          osc.type = currentWaveform;
-          // console.log(`Updated oscillator type to ${currentWaveform}`);
+        if (waveform !== 'pulse') {
+          osc.type = waveform;
+        } else {
+          updatePulseWave(osc, pulseWidth);
         }
       });
 
@@ -136,6 +139,7 @@ const Synth = ({ onClose, position }) => {
     });
   }, [
     waveform,
+    pulseWidth,
     additiveMode,
     numPartials,
     distPartials,
@@ -148,6 +152,44 @@ const Synth = ({ onClose, position }) => {
     crazy,
     distortedFmIntensity,
   ]);
+
+  // Function to create a pulse wave oscillator
+  const createPulseOscillator = (audioCtx, frequency, pulseWidth) => {
+    const osc = audioCtx.createOscillator();
+    const pulseShaper = audioCtx.createWaveShaper();
+    
+    const createPulseCurve = (pulseWidth) => {
+      const curves = new Float32Array(256);
+      for (let i = 0; i < 128; i++) {
+        curves[i] = i < 128 * pulseWidth ? -1 : 1;
+      }
+      for (let i = 128; i < 256; i++) {
+        curves[i] = i < 128 + 128 * pulseWidth ? 1 : -1;
+      }
+      return curves;
+    };
+
+    pulseShaper.curve = createPulseCurve(pulseWidth);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+    osc.connect(pulseShaper);
+
+    return { osc, pulseShaper };
+  };
+
+  // Function to update an existing pulse wave oscillator
+  const updatePulseWave = (osc, pulseWidth) => {
+    if (osc.pulseShaper) {
+      const curves = new Float32Array(256);
+      for (let i = 0; i < 128; i++) {
+        curves[i] = i < 128 * pulseWidth ? -1 : 1;
+      }
+      for (let i = 128; i < 256; i++) {
+        curves[i] = i < 128 + 128 * pulseWidth ? 1 : -1;
+      }
+      osc.pulseShaper.curve = curves;
+    }
+  };
 
   // Define the frequency map using useMemo
   const keyboardFrequencyMap = useMemo(() => {
@@ -250,9 +292,17 @@ const Synth = ({ onClose, position }) => {
     // Create oscillators for each partial
     const oscillators = [];
     for (let i = 0; i < numPartials; i++) {
-      const osc = audioCtx.createOscillator();
-      osc.frequency.setValueAtTime(frequency + i * distPartials, audioCtx.currentTime);
-      osc.type = currentParams.waveform; // Use the current waveform state
+      let osc;
+      if (currentParams.waveform === 'pulse') {
+        const { osc: pulseOsc, pulseShaper } = createPulseOscillator(audioCtx, frequency + i * distPartials, currentParams.pulseWidth);
+        osc = pulseOsc;
+        osc.pulseShaper = pulseShaper;
+      } else {
+        osc = audioCtx.createOscillator();
+        osc.type = currentParams.waveform;
+        osc.frequency.setValueAtTime(frequency + i * distPartials, audioCtx.currentTime);
+      }
+      
       oscillators.push(osc);
       activeOscillatorsRef.current[key].mainOscillators.push(osc);
     }
@@ -262,7 +312,11 @@ const Synth = ({ onClose, position }) => {
     gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
     gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.1); // Fade in
     oscillators.forEach((osc) => {
-      osc.connect(gainNode);
+      if (currentParams.waveform === 'pulse') {
+        osc.pulseShaper.connect(gainNode);
+      } else {
+        osc.connect(gainNode);
+      }
       osc.start();
     });
 
@@ -517,6 +571,8 @@ const Synth = ({ onClose, position }) => {
         <Controls
           waveform={waveform}
           setWaveform={setWaveform}
+          pulseWidth={pulseWidth}
+          setPulseWidth={setPulseWidth}
           additiveMode={additiveMode}
           setAdditiveMode={setAdditiveMode}
           numPartials={numPartials}

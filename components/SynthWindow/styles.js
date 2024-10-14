@@ -1,5 +1,6 @@
 // components/styles.js
 import styled from 'styled-components';
+import { Button } from '@react95/core';
 
 export const Container = styled.div`
   display: flex;
@@ -34,7 +35,22 @@ export const RadioGroup = styled.div`
 
 export const ButtonGroup = styled.div`
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: 100%;
+
+  @media (max-width: 600px) {
+    max-width: 200px;
+  }
+`;
+
+export const StyledButton = styled(Button)`
+  flex: 1 0 calc(16.666% - 5px);
+  min-width: 60px;
+
+  @media (max-width: 600px) {
+    flex: 1 0 calc(50% - 5px);
+  }
 `;
 
 export const VirtualKeyboardContainer = styled.div`

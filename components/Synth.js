@@ -53,6 +53,7 @@ const Synth = ({ onClose, index, total, position }) => {
   const [fmFrequency, setFmFrequency] = useState(250);
   const [lfoMode, setLfoMode] = useState('off');
   const [lfoFrequency, setLfoFrequency] = useState(5);
+  const [crazy, setCrazy] = useState(false); // New state for crazy mode
 
   // Refs for AudioContext and active oscillators
   const audioCtxRef = useRef(null);
@@ -105,9 +106,8 @@ const Synth = ({ onClose, index, total, position }) => {
     const handleKeyDown = (event) => {
       const key = event.keyCode.toString();
       if (keyboardFrequencyMap[key] && !activeOscillatorsRef.current[key]) {
-        if (waveform === '?') {
-          // Handle "crazy" mode if needed
-          // Placeholder: Implement if required
+        if (crazy) {
+          playCrazy();
         } else {
           playNote(
             key,
@@ -137,7 +137,7 @@ const Synth = ({ onClose, index, total, position }) => {
       window.removeEventListener('keyup', handleKeyUp);
       audioCtx.close();
     };
-  }, [waveform, additiveMode, numPartials, distPartials, amMode, amFrequency, fmMode, fmFrequency, lfoMode, lfoFrequency]);
+  }, [waveform, additiveMode, numPartials, distPartials, amMode, amFrequency, fmMode, fmFrequency, lfoMode, lfoFrequency, crazy]); // Added 'crazy' to dependencies
 
   // Function to play a note
   const playNote = (key, frequency, numPartials, distPartials, amFreq, fmFreq, lfoFreq) => {
@@ -190,7 +190,7 @@ const Synth = ({ onClose, index, total, position }) => {
     for (let i = 0; i < numPartials; i++) {
       const osc = audioCtx.createOscillator();
       osc.frequency.setValueAtTime(frequency + i * distPartials, audioCtx.currentTime);
-      osc.type = waveform === '?' ? 'sawtooth' : waveform; // Handle "crazy" waveform if needed
+      osc.type = waveform; // Use the current waveform state
       oscillators.push(osc);
       activeOscillatorsRef.current[key].push(osc);
     }
@@ -233,6 +233,51 @@ const Synth = ({ onClose, index, total, position }) => {
     delete activeOscillatorsRef.current[key];
   };
 
+  // Function to shuffle an array
+  const shuffleArray = (array) => {
+    let currentIndex = array.length, randomIndex;
+
+    // While there remain elements to shuffle.
+    while (currentIndex !== 0) {
+
+      // Pick a remaining element.
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+
+      // And swap it with the current element.
+      [array[currentIndex], array[randomIndex]] = [
+        array[randomIndex], array[currentIndex]];
+    }
+
+    return array;
+  };
+
+  // Function to play a crazy note
+  const playCrazy = () => {
+    const audioCtx = audioCtxRef.current;
+    const keys = Object.keys(keyboardFrequencyMap);
+    const shuffledKeys = shuffleArray([...keys]);
+    const selectedKey = shuffledKeys[0]; // Pick the first key after shuffle
+
+    if (selectedKey && !activeOscillatorsRef.current[selectedKey]) {
+      // Play the selected key with current settings
+      playNote(
+        selectedKey,
+        keyboardFrequencyMap[selectedKey],
+        additiveMode === 'on' ? numPartials : 1,
+        additiveMode === 'on' ? distPartials : 0,
+        amMode === 'on' ? amFrequency : 0,
+        fmMode === 'on' ? fmFrequency : 0,
+        lfoMode === 'on' ? lfoFrequency : 0
+      );
+
+      // Schedule stopping the note after a short duration
+      setTimeout(() => {
+        stopNote(selectedKey);
+      }, 300); // 300ms duration
+    }
+  };
+
   return (
     <Modal
       closeModal={onClose}
@@ -265,22 +310,31 @@ const Synth = ({ onClose, index, total, position }) => {
           <Label>Waveform:</Label>
           <ButtonGroup>
             <Button
-              onClick={() => setWaveform('sine')}
+              onClick={() => {
+                setWaveform('sine');
+                setCrazy(false); // Turn off crazy mode if active
+              }}
               active={waveform === 'sine'}
               style={{ marginRight: '5px' }}
             >
               Sine
             </Button>
             <Button
-              onClick={() => setWaveform('sawtooth')}
+              onClick={() => {
+                setWaveform('sawtooth');
+                setCrazy(false); // Turn off crazy mode if active
+              }}
               active={waveform === 'sawtooth'}
               style={{ marginRight: '5px' }}
             >
               Sawtooth
             </Button>
             <Button
-              onClick={() => setWaveform('?')}
-              active={waveform === '?'}
+              onClick={() => {
+                setCrazy(!crazy);
+                // setWaveform('?'); // Removed this line
+              }}
+              active={crazy}
             >
               ?
             </Button>

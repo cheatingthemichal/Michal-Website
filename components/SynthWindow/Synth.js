@@ -68,7 +68,7 @@ const Synth = ({ onClose, index, total, position }) => {
     return acc;
   }, {});
 
-  // Initialize AudioContext and Event Listeners once
+  // Initialize AudioContext
   useEffect(() => {
     audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     const audioCtx = audioCtxRef.current;
@@ -116,84 +116,20 @@ const Synth = ({ onClose, index, total, position }) => {
       window.removeEventListener('keyup', handleKeyUp);
       audioCtx.close();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array to run once
-
-  // Effect to update waveform smoothly
-  useEffect(() => {
-    const audioCtx = audioCtxRef.current;
-    const currentTime = audioCtx.currentTime;
-    Object.keys(activeOscillatorsRef.current).forEach((key) => {
-      activeOscillatorsRef.current[key].forEach((osc) => {
-        // Smoothly change the waveform by setting type directly
-        osc.type = waveform;
-      });
-    });
-  }, [waveform]);
-
-  // Effect to update AM Frequency smoothly
-  useEffect(() => {
-    const audioCtx = audioCtxRef.current;
-    const currentTime = audioCtx.currentTime;
-    Object.keys(activeOscillatorsRef.current).forEach((key) => {
-      activeOscillatorsRef.current[key].forEach((osc) => {
-        // Assuming AM modulation nodes are stored and connected appropriately
-        // Implement smooth frequency changes if AM is active
-        if (amMode === 'on') {
-          const amModulators = activeOscillatorsRef.current[key].filter(
-            (node) => node.type === 'oscillator' && node.frequency.value === amFrequency
-          );
-          amModulators.forEach((amOsc) => {
-            amOsc.frequency.linearRampToValueAtTime(amFrequency, currentTime + 0.1);
-          });
-        }
-      });
-    });
-  }, [amFrequency, amMode]);
-
-  // Effect to update FM Frequency smoothly
-  useEffect(() => {
-    const audioCtx = audioCtxRef.current;
-    const currentTime = audioCtx.currentTime;
-    Object.keys(activeOscillatorsRef.current).forEach((key) => {
-      activeOscillatorsRef.current[key].forEach((osc) => {
-        // Assuming FM modulation nodes are stored and connected appropriately
-        if (fmMode === 'on') {
-          const fmModulators = activeOscillatorsRef.current[key].filter(
-            (node) => node.type === 'oscillator' && node.frequency.value === fmFrequency
-          );
-          fmModulators.forEach((fmOsc) => {
-            fmOsc.frequency.linearRampToValueAtTime(fmFrequency, currentTime + 0.1);
-          });
-        }
-      });
-    });
-  }, [fmFrequency, fmMode]);
-
-  // Effect to update LFO Frequency smoothly
-  useEffect(() => {
-    const audioCtx = audioCtxRef.current;
-    const currentTime = audioCtx.currentTime;
-    Object.keys(activeOscillatorsRef.current).forEach((key) => {
-      activeOscillatorsRef.current[key].forEach((osc) => {
-        if (lfoMode === 'on') {
-          const lfoNodes = activeOscillatorsRef.current[key].filter(
-            (node) => node.type === 'oscillator' && node.frequency.value === lfoFrequency
-          );
-          lfoNodes.forEach((lfoOsc) => {
-            lfoOsc.frequency.linearRampToValueAtTime(lfoFrequency, currentTime + 0.1);
-          });
-        }
-      });
-    });
-  }, [lfoFrequency, lfoMode]);
-
-  // Effect to update AM and FM modes
-  useEffect(() => {
-    // Handle AM and FM mode changes if necessary
-    // This might involve starting or stopping modulators
-    // Implementation depends on how modulators are managed in playNote
-  }, [amMode, fmMode]);
+  }, [
+    waveform,
+    additiveMode,
+    numPartials,
+    distPartials,
+    amMode,
+    amFrequency,
+    fmMode,
+    fmFrequency,
+    lfoMode,
+    lfoFrequency,
+    crazy,
+    keyboardFrequencyMap,
+  ]);
 
   // Function to play a note
   const playNote = (key, frequency, numPartials, distPartials, amFreq, fmFreq, lfoFreq) => {
@@ -209,7 +145,7 @@ const Synth = ({ onClose, index, total, position }) => {
       amMod.frequency.value = amFreq;
       const amGain = audioCtx.createGain();
       amGain.gain.value = 0.5;
-      amMod.connect(amGain).connect(audioCtx.destination);
+      amMod.connect(amGain).connect(audioCtx.createGain());
       amMod.start();
       activeOscillatorsRef.current[key].push(amMod);
       activeGainsRef.current[key].push(amGain);

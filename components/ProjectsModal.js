@@ -6,8 +6,6 @@ const ProjectsModal = ({
   onClose,
   selectProject,
   currentProject,
-  index,
-  total,
   position,
 }) => {
   const renderContent = () => {
@@ -162,7 +160,7 @@ const ProjectsModal = ({
         maxWidth: '90%',
         maxHeight: '80%',
         overflow: 'auto',
-        zIndex: 1000 + index,
+        zIndex: 1000,
       }}
       icon={<Folder variant="16x16_4" />}
       title="MyProjects"

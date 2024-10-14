@@ -84,59 +84,53 @@ const Home = () => {
 
   // Function to render each modal with its index and total
   const renderModal = (modalType) => {
-    const index = openModals.indexOf(modalType);
-    const position = getModalPosition(index, total, width, height); // Calculate position
-
+    const position = getModalPosition(modalType, width, height); // Calculate position based on modal type
+  
     switch (modalType) {
       case 'ReadMe':
         return (
           <ReadMeWindow
+            key={modalType}
             onClose={() => setShowReadMe(false)}
-            index={index}
-            total={total}
             position={position}
           />
         );
       case 'Music':
         return (
           <MusicWindow
+            key={modalType}
             onClose={() => setShowMusic(false)}
             canvasRef={canvasRef}
             isOpen={showMusic}
-            index={index}
-            total={total}
             position={position}
           />
         );
       case 'Synth':
         return (
           <Synth
+            key={modalType}
             onClose={() => setShowSynth(false)}
-            index={index}
-            total={total}
             position={position}
           />
         );
       case 'Map':
         return (
           <Map
+            key={modalType}
             onClose={() => setShowMap(false)}
-            index={index}
-            total={total}
             position={position}
           />
         );
       case 'Projects':
         return (
           <ProjectsModal
+            key={modalType}
             onClose={() => {
               setShowProjects(false);
               setCurrentProject(null);
             }}
             selectProject={setCurrentProject}
             currentProject={currentProject}
-            index={index}
-            total={total}
             position={position}
           />
         );

@@ -13,7 +13,7 @@ const ToggleButton = styled(Button)`
   align-self: center;
 `;
 
-const Synth = ({ onClose, index, total, position }) => {
+const Synth = ({ onClose, position }) => {
   // State variables
   const [waveform, setWaveform] = useState('sine');
   const [additiveMode, setAdditiveMode] = useState('off');
@@ -314,7 +314,7 @@ const Synth = ({ onClose, index, total, position }) => {
         maxWidth: '90%',
         maxHeight: '90%',
         overflow: 'auto',
-        zIndex: 1000 + index,
+        zIndex: 1000,
       }}
       icon={<Mmsys120 variant="32x32_4" />}
       title="MySynthesizer.exe"

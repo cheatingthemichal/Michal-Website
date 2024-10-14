@@ -11,8 +11,6 @@ const MusicWindow = ({
   onClose,
   canvasRef,
   isOpen,
-  index,
-  total,
   position,
 }) => {
   const [fileName, setFileName] = useState('');
@@ -88,7 +86,7 @@ const MusicWindow = ({
         maxWidth: '90%',
         maxHeight: '80%',
         overflow: 'auto',
-        zIndex: 1000 + index,
+        zIndex: 1000,
       }}
       icon={<Computer variant="16x16_4" />}
       title="MyMusicVisualizer.exe"

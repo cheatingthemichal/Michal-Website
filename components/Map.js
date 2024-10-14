@@ -3,7 +3,7 @@ import React from 'react';
 import { List, Modal } from '@react95/core';
 import { Inetcpl1313 } from '@react95/icons';
 
-const Map = ({ onClose, index, total, position }) => {
+const Map = ({ onClose, position }) => {
   return (
     <Modal
       closeModal={onClose}
@@ -15,7 +15,7 @@ const Map = ({ onClose, index, total, position }) => {
         maxWidth: '90%',
         maxHeight: '80%',
         overflow: 'auto',
-        zIndex: 1000 + index,
+        zIndex: 1000,
       }}
       icon={<Inetcpl1313 variant="48x48_4" />}
       title="MyMountainFinder.exe"

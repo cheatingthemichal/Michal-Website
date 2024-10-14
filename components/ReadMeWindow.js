@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { List, Modal } from '@react95/core';
 import { Notepad } from '@react95/icons';
 
-const ReadMeWindow = ({ onClose, index, total, position }) => {
+const ReadMeWindow = ({ onClose, position }) => {
   const initialText = `Hi! My name is Michal Hajlasz and this is my website. 
           
 I built it in Next.js with the React95 component library.
@@ -29,7 +29,7 @@ You can contact me at: michalhajlasz@gmail.com.`;
         maxWidth: '90%',
         maxHeight: '80%',
         overflow: 'auto',
-        zIndex: 1000 + index,
+        zIndex: 1000,
       }}
       icon={<Notepad variant="16x16_4" />}
       title="README.txt"

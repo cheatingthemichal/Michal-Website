@@ -550,7 +550,7 @@ const Synth = ({ onClose, position }) => {
     <Modal
       closeModal={onClose}
       style={{
-        width: (showKeyboard && !isTwoRows) ? '700px' : '600px',
+        width: (showKeyboard && !isTwoRows) ? '660px' : '600px',
         height: 'auto',
         left: position.x,
         top: position.y,

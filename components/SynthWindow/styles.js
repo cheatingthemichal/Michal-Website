@@ -56,7 +56,7 @@ export const StyledButton = styled(Button)`
 
 export const VirtualKeyboardContainer = styled.div`
   width: 100%;
-  max-width: 700px;
+  max-width: 660px;
   margin: auto;
   display: flex;
   flex-direction: column;

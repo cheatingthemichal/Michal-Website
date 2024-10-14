@@ -1,4 +1,3 @@
-// components/VirtualKeyboard/VirtualKeyboard.js
 import React from 'react';
 import { VirtualKeyboardContainer, OctaveContainer } from '../styles';
 import WhiteKeys from './WhiteKeys';

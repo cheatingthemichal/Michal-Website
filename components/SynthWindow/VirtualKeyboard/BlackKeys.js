@@ -1,8 +1,6 @@
-// components/VirtualKeyboard/BlackKeys.js
 import React from 'react';
 import { BlackKeyStyled } from '../styles';
 
-// Define the left offsets for each black key within a single octave
 const blackKeyOffsets = {
   'C#': 33,
   'D#': 77,
@@ -37,6 +35,8 @@ const BlackKeys = ({ keys, handleKeyDown, handleKeyUp, activeOscillators }) => {
             onMouseDown={() => handleKeyDown(key)}
             onMouseUp={() => handleKeyUp(key)}
             onMouseLeave={() => handleKeyUp(key)}
+            onTouchStart={() => handleKeyDown(key)}
+            onTouchEnd={() => handleKeyUp(key)}
             active={activeOscillators[`virtual-${key.note}`] !== undefined}
           />
         );
@@ -44,6 +44,5 @@ const BlackKeys = ({ keys, handleKeyDown, handleKeyUp, activeOscillators }) => {
     </>
   );
 };
-
 
 export default BlackKeys;

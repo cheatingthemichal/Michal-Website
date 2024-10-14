@@ -1,11 +1,40 @@
 // components/Synth.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { List, Modal, Button } from '@react95/core';
 import { Mmsys120 } from '@react95/icons';
 import styled from 'styled-components';
 import Controls from './Controls';
 import VirtualKeyboard from './VirtualKeyboard';
 import { Instructions, Container } from './styles';
+
+// Define the list of keys outside the component to prevent re-creation
+const KEYS = [
+  { note: 'C4', frequency: 261.63, type: 'white', keyCode: '90' }, // Z
+  { note: 'C#4', frequency: 277.18, type: 'black', keyCode: '83' }, // S
+  { note: 'D4', frequency: 293.66, type: 'white', keyCode: '88' }, // X
+  { note: 'D#4', frequency: 311.13, type: 'black', keyCode: '68' }, // D
+  { note: 'E4', frequency: 329.63, type: 'white', keyCode: '67' }, // C
+  { note: 'F4', frequency: 349.23, type: 'white', keyCode: '86' }, // V
+  { note: 'F#4', frequency: 369.99, type: 'black', keyCode: '71' }, // G
+  { note: 'G4', frequency: 391.99, type: 'white', keyCode: '66' }, // B
+  { note: 'G#4', frequency: 415.3, type: 'black', keyCode: '72' }, // H
+  { note: 'A4', frequency: 440, type: 'white', keyCode: '78' }, // N
+  { note: 'A#4', frequency: 466.16, type: 'black', keyCode: '74' }, // J
+  { note: 'B4', frequency: 493.88, type: 'white', keyCode: '77' }, // M
+  { note: 'C5', frequency: 523.25, type: 'white', keyCode: '81' }, // Q
+  { note: 'C#5', frequency: 554.37, type: 'black', keyCode: '50' }, // 2
+  { note: 'D5', frequency: 587.33, type: 'white', keyCode: '87' }, // W
+  { note: 'D#5', frequency: 622.25, type: 'black', keyCode: '51' }, // 3
+  { note: 'E5', frequency: 659.26, type: 'white', keyCode: '69' }, // E
+  { note: 'F5', frequency: 698.46, type: 'white', keyCode: '82' }, // R
+  { note: 'F#5', frequency: 739.99, type: 'black', keyCode: '53' }, // 5
+  { note: 'G5', frequency: 783.99, type: 'white', keyCode: '84' }, // T
+  { note: 'G#5', frequency: 830.61, type: 'black', keyCode: '54' }, // 6
+  { note: 'A5', frequency: 880, type: 'white', keyCode: '89' }, // Y
+  { note: 'A#5', frequency: 932.33, type: 'black', keyCode: '55' }, // 7
+  { note: 'B5', frequency: 987.77, type: 'white', keyCode: '85' }, // U
+  { note: 'C6', frequency: 1046.5, type: 'white', keyCode: '73' }, // I
+];
 
 // Styled Components specific to Synth.js
 const ToggleButton = styled(Button)`
@@ -35,42 +64,100 @@ const Synth = ({ onClose, position }) => {
   const activeOscillatorsRef = useRef({});
   const activeGainsRef = useRef({});
 
-  // Define the list of keys for the virtual keyboard with correct keyCodes
-  const keys = [
-    { note: 'C4', frequency: 261.63, type: 'white', keyCode: '90' }, // Z
-    { note: 'C#4', frequency: 277.18, type: 'black', keyCode: '83' }, // S
-    { note: 'D4', frequency: 293.66, type: 'white', keyCode: '88' }, // X
-    { note: 'D#4', frequency: 311.13, type: 'black', keyCode: '68' }, // D
-    { note: 'E4', frequency: 329.63, type: 'white', keyCode: '67' }, // C
-    { note: 'F4', frequency: 349.23, type: 'white', keyCode: '86' }, // V
-    { note: 'F#4', frequency: 369.99, type: 'black', keyCode: '71' }, // G
-    { note: 'G4', frequency: 391.99, type: 'white', keyCode: '66' }, // B
-    { note: 'G#4', frequency: 415.3, type: 'black', keyCode: '72' }, // H
-    { note: 'A4', frequency: 440, type: 'white', keyCode: '78' }, // N
-    { note: 'A#4', frequency: 466.16, type: 'black', keyCode: '74' }, // J
-    { note: 'B4', frequency: 493.88, type: 'white', keyCode: '77' }, // M
-    { note: 'C5', frequency: 523.25, type: 'white', keyCode: '81' }, // Q
-    { note: 'C#5', frequency: 554.37, type: 'black', keyCode: '50' }, // 2
-    { note: 'D5', frequency: 587.33, type: 'white', keyCode: '87' }, // W
-    { note: 'D#5', frequency: 622.25, type: 'black', keyCode: '51' }, // 3
-    { note: 'E5', frequency: 659.26, type: 'white', keyCode: '69' }, // E
-    { note: 'F5', frequency: 698.46, type: 'white', keyCode: '82' }, // R
-    { note: 'F#5', frequency: 739.99, type: 'black', keyCode: '53' }, // 5
-    { note: 'G5', frequency: 783.99, type: 'white', keyCode: '84' }, // T
-    { note: 'G#5', frequency: 830.61, type: 'black', keyCode: '54' }, // 6
-    { note: 'A5', frequency: 880, type: 'white', keyCode: '89' }, // Y
-    { note: 'A#5', frequency: 932.33, type: 'black', keyCode: '55' }, // 7
-    { note: 'B5', frequency: 987.77, type: 'white', keyCode: '85' }, // U
-    { note: 'C6', frequency: 1046.5, type: 'white', keyCode: '73' }, // I
-  ];
+  // Ref to store current parameters
+  const parametersRef = useRef({
+    waveform,
+    additiveMode,
+    numPartials,
+    distPartials,
+    amMode,
+    amFrequency,
+    fmMode,
+    fmFrequency,
+    lfoMode,
+    lfoFrequency,
+    crazy,
+    distortedFmIntensity,
+  });
 
-  // Frequency map for physical keyboard using keyCode as strings
-  const keyboardFrequencyMap = keys.reduce((acc, key) => {
-    acc[key.keyCode] = key.frequency;
-    return acc;
-  }, {});
+  // Update parametersRef whenever state changes
+  useEffect(() => {
+    parametersRef.current = {
+      waveform,
+      additiveMode,
+      numPartials,
+      distPartials,
+      amMode,
+      amFrequency,
+      fmMode,
+      fmFrequency,
+      lfoMode,
+      lfoFrequency,
+      crazy,
+      distortedFmIntensity,
+    };
 
-  // Initialize AudioContext and Compressor
+    // Destructure current parameters for ease of use
+    const { waveform: currentWaveform, amFrequency: currentAmFreq, fmFrequency: currentFmFreq, lfoFrequency: currentLfoFreq, distortedFmIntensity: currentDistortedFmIntensity } = parametersRef.current;
+
+    // Iterate over all active oscillators and update their properties
+    Object.values(activeOscillatorsRef.current).forEach((oscList) => {
+      // Update main oscillators' waveform
+      oscList.mainOscillators.forEach((osc) => {
+        if (osc.type !== currentWaveform) {
+          osc.type = currentWaveform;
+          // console.log(`Updated oscillator type to ${currentWaveform}`);
+        }
+      });
+
+      // Update AM frequency if AM is on
+      if (oscList.amMod) {
+        oscList.amMod.frequency.setValueAtTime(currentAmFreq, audioCtxRef.current.currentTime);
+        // console.log(`Updated AM frequency to ${currentAmFreq}`);
+      }
+
+      // Update FM frequency if FM is on
+      if (oscList.fmMod) {
+        oscList.fmMod.frequency.setValueAtTime(currentFmFreq, audioCtxRef.current.currentTime);
+        // console.log(`Updated FM frequency to ${currentFmFreq}`);
+      }
+
+      // Update LFO frequency if LFO is on
+      if (oscList.lfo) {
+        oscList.lfo.frequency.setValueAtTime(currentLfoFreq, audioCtxRef.current.currentTime);
+        // console.log(`Updated LFO frequency to ${currentLfoFreq}`);
+      }
+
+      // Update distorted FM intensity if applicable
+      if (oscList.distortedFmMod && oscList.distortedFmGain) {
+        oscList.distortedFmGain.gain.setValueAtTime(100 * currentDistortedFmIntensity, audioCtxRef.current.currentTime);
+        // console.log(`Updated distorted FM intensity to ${currentDistortedFmIntensity}`);
+      }
+    });
+  }, [
+    waveform,
+    additiveMode,
+    numPartials,
+    distPartials,
+    amMode,
+    amFrequency,
+    fmMode,
+    fmFrequency,
+    lfoMode,
+    lfoFrequency,
+    crazy,
+    distortedFmIntensity,
+  ]);
+
+  // Define the frequency map using useMemo
+  const keyboardFrequencyMap = useMemo(() => {
+    return KEYS.reduce((acc, key) => {
+      acc[key.keyCode] = key.frequency;
+      return acc;
+    }, {});
+  }, []);
+
+  // Initialize AudioContext and Compressor once
   useEffect(() => {
     // Initialize AudioContext
     audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -90,18 +177,20 @@ const Synth = ({ onClose, position }) => {
     // Event listeners for keyboard
     const handleKeyDown = (event) => {
       const keyCode = event.keyCode.toString();
+      const currentParams = parametersRef.current;
+
       if (keyboardFrequencyMap[keyCode] && !activeOscillatorsRef.current[keyCode]) {
-        if (crazy) {
+        if (currentParams.crazy) {
           playCrazy();
         } else {
           playNote(
             keyCode,
             keyboardFrequencyMap[keyCode],
-            additiveMode === 'on' ? parseInt(numPartials) : 1,
-            additiveMode === 'on' ? parseInt(distPartials) : 0,
-            amMode === 'on' ? parseFloat(amFrequency) : 0,
-            fmMode === 'on' ? parseFloat(fmFrequency) : 0,
-            lfoMode === 'on' ? parseFloat(lfoFrequency) : 0
+            currentParams.additiveMode === 'on' ? parseInt(currentParams.numPartials) : 1,
+            currentParams.additiveMode === 'on' ? parseInt(currentParams.distPartials) : 0,
+            currentParams.amMode === 'on' ? parseFloat(currentParams.amFrequency) : 0,
+            currentParams.fmMode === 'on' ? parseFloat(currentParams.fmFrequency) : 0,
+            currentParams.lfoMode === 'on' ? parseFloat(currentParams.lfoFrequency) : 0
           );
         }
       }
@@ -122,20 +211,7 @@ const Synth = ({ onClose, position }) => {
       window.removeEventListener('keyup', handleKeyUp);
       audioCtx.close();
     };
-  }, [
-    waveform,
-    additiveMode,
-    numPartials,
-    distPartials,
-    amMode,
-    amFrequency,
-    fmMode,
-    fmFrequency,
-    lfoMode,
-    lfoFrequency,
-    crazy,
-    keyboardFrequencyMap,
-  ]);
+  }, [keyboardFrequencyMap]);
 
   // Function to play a note
   const playNote = (
@@ -148,19 +224,37 @@ const Synth = ({ onClose, position }) => {
     lfoFreq
   ) => {
     const audioCtx = audioCtxRef.current;
+    const currentParams = parametersRef.current;
 
-    // Initialize arrays for oscillators and gains if not present
-    activeOscillatorsRef.current[key] = [];
-    activeGainsRef.current[key] = [];
+    // Initialize structure for the key if not present
+    if (!activeOscillatorsRef.current[key]) {
+      activeOscillatorsRef.current[key] = {
+        mainOscillators: [],
+        amMod: null,
+        fmMod: null,
+        distortedFmMod: null,
+        lfo: null,
+      };
+    }
+
+    if (!activeGainsRef.current[key]) {
+      activeGainsRef.current[key] = {
+        gainNodes: [],
+        amGain: null,
+        fmGain: null,
+        distortedFmGain: null,
+        lfoGain: null,
+      };
+    }
 
     // Create oscillators for each partial
     const oscillators = [];
     for (let i = 0; i < numPartials; i++) {
       const osc = audioCtx.createOscillator();
       osc.frequency.setValueAtTime(frequency + i * distPartials, audioCtx.currentTime);
-      osc.type = waveform; // Use the current waveform state
+      osc.type = currentParams.waveform; // Use the current waveform state
       oscillators.push(osc);
-      activeOscillatorsRef.current[key].push(osc);
+      activeOscillatorsRef.current[key].mainOscillators.push(osc);
     }
 
     // Create Gain Node for the main signal
@@ -180,10 +274,10 @@ const Synth = ({ onClose, position }) => {
     }
 
     // Store Gain Node
-    activeGainsRef.current[key].push(gainNode);
+    activeGainsRef.current[key].gainNodes.push(gainNode);
 
     // AM Modulation
-    if (amFreq > 0) {
+    if (amFreq > 0 && currentParams.amMode === 'on') {
       const amMod = audioCtx.createOscillator();
       amMod.frequency.value = amFreq;
 
@@ -195,12 +289,12 @@ const Synth = ({ onClose, position }) => {
 
       amMod.start();
 
-      activeOscillatorsRef.current[key].push(amMod);
-      activeGainsRef.current[key].push(amGain);
+      activeOscillatorsRef.current[key].amMod = amMod;
+      activeGainsRef.current[key].amGain = amGain;
     }
 
     // FM Modulation (Correct Implementation)
-    if (fmFreq > 0 && fmMode === 'on') {
+    if (fmFreq > 0 && currentParams.fmMode === 'on') {
       const fmMod = audioCtx.createOscillator();
       fmMod.frequency.value = fmFreq;
 
@@ -215,27 +309,27 @@ const Synth = ({ onClose, position }) => {
 
       fmMod.start();
 
-      activeOscillatorsRef.current[key].push(fmMod);
-      activeGainsRef.current[key].push(fmGain);
+      activeOscillatorsRef.current[key].fmMod = fmMod;
+      activeGainsRef.current[key].fmGain = fmGain;
     }
 
     // Distorted FM Modulation (Old Implementation)
-    if (fmFreq > 0 && distortedFmIntensity > 0 && fmMode === 'on') {
+    if (fmFreq > 0 && currentParams.distortedFmIntensity > 0 && currentParams.fmMode === 'on') {
       const distortedFmMod = audioCtx.createOscillator();
       distortedFmMod.frequency.value = fmFreq;
 
       const distortedFmGain = audioCtx.createGain();
-      distortedFmGain.gain.value = 100 * distortedFmIntensity; // Scaled by intensity
+      distortedFmGain.gain.value = 100 * currentParams.distortedFmIntensity; // Scaled by intensity
 
       distortedFmMod.connect(distortedFmGain).connect(audioCtx.destination);
       distortedFmMod.start();
 
-      activeOscillatorsRef.current[key].push(distortedFmMod);
-      activeGainsRef.current[key].push(distortedFmGain);
+      activeOscillatorsRef.current[key].distortedFmMod = distortedFmMod;
+      activeGainsRef.current[key].distortedFmGain = distortedFmGain;
     }
 
     // LFO Modulation
-    if (lfoFreq > 0) {
+    if (lfoFreq > 0 && currentParams.lfoMode === 'on') {
       const lfo = audioCtx.createOscillator();
       lfo.frequency.value = lfoFreq;
 
@@ -247,24 +341,60 @@ const Synth = ({ onClose, position }) => {
 
       lfo.start();
 
-      activeOscillatorsRef.current[key].push(lfo);
-      activeGainsRef.current[key].push(lfoGain);
+      activeOscillatorsRef.current[key].lfo = lfo;
+      activeGainsRef.current[key].lfoGain = lfoGain;
     }
   };
 
   // Function to stop a note
   const stopNote = (key) => {
     const audioCtx = audioCtxRef.current;
-    const gainNodes = activeGainsRef.current[key] || [];
-    const oscillators = activeOscillatorsRef.current[key] || [];
+    const gainNodes = activeGainsRef.current[key]?.gainNodes || [];
+    const { amMod, fmMod, distortedFmMod, lfo } = activeOscillatorsRef.current[key] || {};
+    const { amGain, fmGain, distortedFmGain, lfoGain } = activeGainsRef.current[key] || {};
 
+    // Fade out gain nodes
     gainNodes.forEach((gainNode) => {
       gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
       gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3); // Fade out
     });
 
-    oscillators.forEach((osc) => {
+    // Fade out and stop AM modulation oscillator
+    if (amMod && amGain) {
+      amGain.gain.cancelScheduledValues(audioCtx.currentTime);
+      amGain.gain.setValueAtTime(amGain.gain.value, audioCtx.currentTime);
+      amGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+      amMod.stop(audioCtx.currentTime + 0.3);
+    }
+
+    // Fade out and stop FM modulation oscillator
+    if (fmMod && fmGain) {
+      fmGain.gain.cancelScheduledValues(audioCtx.currentTime);
+      fmGain.gain.setValueAtTime(fmGain.gain.value, audioCtx.currentTime);
+      fmGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+      fmMod.stop(audioCtx.currentTime + 0.3);
+    }
+
+    // Fade out and stop Distorted FM modulation oscillator
+    if (distortedFmMod && distortedFmGain) {
+      distortedFmGain.gain.cancelScheduledValues(audioCtx.currentTime);
+      distortedFmGain.gain.setValueAtTime(distortedFmGain.gain.value, audioCtx.currentTime);
+      distortedFmGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+      distortedFmMod.stop(audioCtx.currentTime + 0.3);
+    }
+
+    // Fade out and stop LFO oscillator
+    if (lfo && lfoGain) {
+      lfoGain.gain.cancelScheduledValues(audioCtx.currentTime);
+      lfoGain.gain.setValueAtTime(lfoGain.gain.value, audioCtx.currentTime);
+      lfoGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+      lfo.stop(audioCtx.currentTime + 0.3);
+    }
+
+    // Stop main oscillators
+    const mainOscillators = activeOscillatorsRef.current[key]?.mainOscillators || [];
+    mainOscillators.forEach((osc) => {
       try {
         osc.stop(audioCtx.currentTime + 0.3);
       } catch (e) {
@@ -272,6 +402,7 @@ const Synth = ({ onClose, position }) => {
       }
     });
 
+    // Clean up
     delete activeGainsRef.current[key];
     delete activeOscillatorsRef.current[key];
   };
@@ -300,7 +431,8 @@ const Synth = ({ onClose, position }) => {
   // Function to play a crazy note
   const playCrazy = () => {
     const audioCtx = audioCtxRef.current;
-    const whiteKeysList = keys.filter((key) => key.type === 'white'); // Prefer white keys for crazy mode
+    const currentParams = parametersRef.current;
+    const whiteKeysList = KEYS.filter((key) => key.type === 'white'); // Prefer white keys for crazy mode
     const shuffledKeys = shuffleArray([...whiteKeysList]);
     const selectedKey = shuffledKeys[0]; // Pick the first key after shuffle
 
@@ -311,11 +443,11 @@ const Synth = ({ onClose, position }) => {
         playNote(
           virtualKey,
           selectedKey.frequency,
-          additiveMode === 'on' ? numPartials : 1,
-          additiveMode === 'on' ? distPartials : 0,
-          amMode === 'on' ? amFrequency : 0,
-          fmMode === 'on' ? fmFrequency : 0,
-          lfoMode === 'on' ? lfoFrequency : 0
+          currentParams.additiveMode === 'on' ? currentParams.numPartials : 1,
+          currentParams.additiveMode === 'on' ? currentParams.distPartials : 0,
+          currentParams.amMode === 'on' ? currentParams.amFrequency : 0,
+          currentParams.fmMode === 'on' ? currentParams.fmFrequency : 0,
+          currentParams.lfoMode === 'on' ? currentParams.lfoFrequency : 0
         );
 
         // Schedule stopping the note after a short duration
@@ -327,7 +459,8 @@ const Synth = ({ onClose, position }) => {
   };
 
   const handleVirtualKeyDown = (key) => {
-    if (crazy) {
+    const currentParams = parametersRef.current;
+    if (currentParams.crazy) {
       playCrazy();
     } else {
       const virtualKey = `virtual-${key.note}`;
@@ -335,11 +468,11 @@ const Synth = ({ onClose, position }) => {
         playNote(
           virtualKey,
           key.frequency,
-          additiveMode === 'on' ? numPartials : 1,
-          additiveMode === 'on' ? distPartials : 0,
-          amMode === 'on' ? amFrequency : 0,
-          fmMode === 'on' ? fmFrequency : 0,
-          lfoMode === 'on' ? lfoFrequency : 0
+          currentParams.additiveMode === 'on' ? currentParams.numPartials : 1,
+          currentParams.additiveMode === 'on' ? currentParams.distPartials : 0,
+          currentParams.amMode === 'on' ? currentParams.amFrequency : 0,
+          currentParams.fmMode === 'on' ? currentParams.fmFrequency : 0,
+          currentParams.lfoMode === 'on' ? currentParams.lfoFrequency : 0
         );
       }
     }
@@ -421,7 +554,7 @@ const Synth = ({ onClose, position }) => {
         {/* Virtual Keyboard */}
         {showKeyboard && (
           <VirtualKeyboard
-            keys={keys}
+            keys={KEYS}
             handleVirtualKeyDown={handleVirtualKeyDown}
             handleVirtualKeyUp={handleVirtualKeyUp}
             activeOscillators={activeOscillatorsRef.current}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { WhiteKeysRow, WhiteKeyStyled } from '../styles';
 
-const WhiteKeys = ({ keys, handleKeyDown, handleKeyUp, activeOscillators }) => {
+const WhiteKeys = ({ keys, handleKeyDown, handleKeyUp, handleKeyEnter, activeOscillators }) => {
   return (
     <WhiteKeysRow>
       {keys.map((key) => (
@@ -9,9 +9,7 @@ const WhiteKeys = ({ keys, handleKeyDown, handleKeyUp, activeOscillators }) => {
           key={key.note}
           onMouseDown={() => handleKeyDown(key)}
           onMouseUp={() => handleKeyUp(key)}
-          onMouseLeave={() => handleKeyUp(key)}
-          onTouchStart={() => handleKeyDown(key)}
-          onTouchEnd={() => handleKeyUp(key)}
+          onMouseEnter={() => handleKeyEnter(key)}
           active={activeOscillators[`virtual-${key.note}`] !== undefined}
         />
       ))}

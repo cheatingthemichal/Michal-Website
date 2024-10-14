@@ -7,6 +7,17 @@ import Controls from './Controls';
 import VirtualKeyboard from './VirtualKeyboard';
 import { Instructions, Container } from './styles';
 
+const ButtonContainer = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  align-self: center;
+`;
+
+const ToggleButton = styled(Button)`
+  align-self: center;
+`;
+
 // Define the list of keys outside the component to prevent re-creation
 const KEYS = [
   { note: 'C4', frequency: 261.63, type: 'white', keyCode: '90' }, // Z
@@ -36,12 +47,6 @@ const KEYS = [
   { note: 'C6', frequency: 1046.5, type: 'white', keyCode: '73' }, // I
 ];
 
-// Styled Components specific to Synth.js
-const ToggleButton = styled(Button)`
-  margin-top: 10px;
-  align-self: center;
-`;
-
 const Synth = ({ onClose, position }) => {
   // State variables
   const [waveform, setWaveform] = useState('sine');
@@ -57,6 +62,7 @@ const Synth = ({ onClose, position }) => {
   const [lfoFrequency, setLfoFrequency] = useState(5);
   const [crazy, setCrazy] = useState(false); // New state for crazy mode
   const [showKeyboard, setShowKeyboard] = useState(false); // State to toggle keyboard visibility
+  const [isTwoRows, setIsTwoRows] = useState(false);
   const [distortedFmIntensity, setDistortedFmIntensity] = useState(0); // New state for distorted FM intensity
 
   // Refs for AudioContext and active oscillators/gains
@@ -602,10 +608,18 @@ const Synth = ({ onClose, position }) => {
           Press keys (Z, S, X, D, C, V, G, B, H, N, J, M, Q, 2, W, 3, E, R, 5, T, 6, Y, 7, U, I) to play notes.
         </Instructions>
 
-        {/* Toggle Virtual Keyboard Button */}
-        <ToggleButton onClick={() => setShowKeyboard(!showKeyboard)}>
-          {showKeyboard ? 'Hide Virtual Keyboard' : 'Show Virtual Keyboard'}
-        </ToggleButton>
+        {/* Button Container for Virtual Keyboard and Layout Toggle */}
+        <ButtonContainer>
+          <ToggleButton onClick={() => setShowKeyboard(!showKeyboard)}>
+            {showKeyboard ? 'Hide Virtual Keyboard' : 'Show Virtual Keyboard'}
+          </ToggleButton>
+          
+          {showKeyboard && (
+            <ToggleButton onClick={() => setIsTwoRows(!isTwoRows)}>
+              {isTwoRows ? 'Make One Row' : 'Make Two Rows'}
+            </ToggleButton>
+          )}
+        </ButtonContainer>
 
         {/* Virtual Keyboard */}
         {showKeyboard && (
@@ -614,6 +628,7 @@ const Synth = ({ onClose, position }) => {
             handleVirtualKeyDown={handleVirtualKeyDown}
             handleVirtualKeyUp={handleVirtualKeyUp}
             activeOscillators={activeOscillatorsRef.current}
+            isTwoRows={isTwoRows}
           />
         )}
       </Container>

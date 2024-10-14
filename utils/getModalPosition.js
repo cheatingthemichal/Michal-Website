@@ -13,7 +13,7 @@ const getModalPosition = (modalType, width, height) => {
       y: 100, // Fixed vertical position
     },
     Synth: {
-      x: width - modalWidth - 280, // Fixed to the right
+      x: width - modalWidth - 300, // Fixed to the right
       y: 100,
     },
     Map: {

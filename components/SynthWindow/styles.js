@@ -53,16 +53,31 @@ export const StyledButton = styled(Button)`
   }
 `;
 
+
 export const VirtualKeyboardContainer = styled.div`
   width: 100%;
-  max-width: 600px; /* Adjust this based on your modal's width */
-  margin: auto; /* Center horizontally */
+  max-width: 700px;
+  margin: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   user-select: none;
   position: relative;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    height: 16px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: #f1f1f1;
+  }
 `;
 
 export const WhiteKeysRow = styled.div`
@@ -80,6 +95,10 @@ export const WhiteKeyStyled = styled.div`
   box-shadow: ${({ active }) => (active ? 'inset 0px 0px 5px #000' : 'none')};
   cursor: pointer;
   margin: 0 2px;
+
+  @media (max-width: 600px) {
+    width: 30px;
+  }
 `;
 
 export const BlackKeyStyled = styled.div`
@@ -92,10 +111,14 @@ export const BlackKeyStyled = styled.div`
   z-index: 2;
   cursor: pointer;
   box-shadow: ${({ active }) => (active ? 'inset 0px 0px 5px #fff' : 'none')};
+  
+  @media (max-width: 600px) {
+    width: 20px;
+  }
 `;
 
 export const OctaveContainer = styled.div`
-  position: relative; /* Relative positioning for absolute children */
+  position: relative;
   display: flex;
   flex-direction: column;
 `;

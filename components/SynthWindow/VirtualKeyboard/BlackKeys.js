@@ -11,23 +11,29 @@ const blackKeyOffsets = {
   'A#': 253,
 };
 
-const BlackKeys = ({ keys, handleKeyDown, handleKeyUp, activeOscillators}) => {
+const blackKeyOffsetsSmall = {
+  'C#': 25,
+  'D#': 60,
+  'F#': 125,
+  'G#': 160,
+  'A#': 195,
+};
+
+const BlackKeys = ({ keys, handleKeyDown, handleKeyUp, activeOscillators }) => {
+  const isSmallScreen = window.innerWidth <= 600;
+  const offsets = isSmallScreen ? blackKeyOffsetsSmall : blackKeyOffsets;
+
   return (
     <>
       {keys.map((key) => {
-        // Extract the note name without the octave number (e.g., 'C#4' -> 'C#')
         const noteName = key.note.slice(0, -1);
-
-        // Get the base left offset for the note within the octave
-        const baseOffset = blackKeyOffsets[noteName] || 0;
-
-        // Total left offset is base offset (no octave shift)
+        const baseOffset = offsets[noteName] || 0;
         const leftOffset = baseOffset;
 
         return (
           <BlackKeyStyled
             key={key.note}
-            style={{ left: `${leftOffset}px`}}
+            style={{ left: `${leftOffset}px` }}
             onMouseDown={() => handleKeyDown(key)}
             onMouseUp={() => handleKeyUp(key)}
             onMouseLeave={() => handleKeyUp(key)}
@@ -38,5 +44,6 @@ const BlackKeys = ({ keys, handleKeyDown, handleKeyUp, activeOscillators}) => {
     </>
   );
 };
+
 
 export default BlackKeys;

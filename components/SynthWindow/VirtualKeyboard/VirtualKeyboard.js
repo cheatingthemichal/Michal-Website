@@ -5,7 +5,7 @@ import WhiteKeys from './WhiteKeys';
 import BlackKeys from './BlackKeys';
 
 const VirtualKeyboard = ({ keys, handleVirtualKeyDown, handleVirtualKeyUp, activeOscillators, isTwoRows }) => {
-  const firstOctave = keys.filter((key) => key.note.endsWith('4') || key.note === 'C5');
+  const firstOctave = keys.filter((key) => key.note.endsWith('4'));
   const secondOctave = keys.filter((key) => key.note.endsWith('5') || key.note === 'C6');
 
   return (

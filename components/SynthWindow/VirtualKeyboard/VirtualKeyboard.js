@@ -1,5 +1,5 @@
 // components/VirtualKeyboard.js
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { VirtualKeyboardContainer, OctaveContainer } from '../styles';
 import WhiteKeys from './WhiteKeys';
 import BlackKeys from './BlackKeys';
@@ -15,11 +15,36 @@ const VirtualKeyboard = ({
   const secondOctave = keys.filter(
     (key) => key.note.endsWith('5') || key.note === 'C6'
   );
+  
   const [activeKeys, setActiveKeys] = useState(new Set());
+  const isPointerDownRef = useRef(false);
+
+  // Global handler to reset pointer state and stop all active keys
+  useEffect(() => {
+    const handleGlobalPointerUp = () => {
+      if (isPointerDownRef.current) {
+        isPointerDownRef.current = false;
+        // Stop all active keys
+        activeKeys.forEach((note) => {
+          handleVirtualKeyUp({ note });
+        });
+        setActiveKeys(new Set());
+      }
+    };
+
+    window.addEventListener('pointerup', handleGlobalPointerUp);
+    window.addEventListener('pointercancel', handleGlobalPointerUp);
+
+    return () => {
+      window.removeEventListener('pointerup', handleGlobalPointerUp);
+      window.removeEventListener('pointercancel', handleGlobalPointerUp);
+    };
+  }, [activeKeys, handleVirtualKeyUp]);
 
   const handlePointerDown = (key) => {
     handleVirtualKeyDown(key);
     setActiveKeys((prev) => new Set(prev).add(key.note));
+    isPointerDownRef.current = true;
   };
 
   const handlePointerUp = (key) => {
@@ -29,22 +54,29 @@ const VirtualKeyboard = ({
       newSet.delete(key.note);
       return newSet;
     });
+    // Do not set isPointerDownRef.current here; global handler will handle it
   };
 
   const handlePointerEnter = (key) => {
-    // Optional: Handle pointer entering a key while pressed (e.g., dragging)
-    // For simplicity, this example allows multiple keys without interruption
-    handleVirtualKeyDown(key);
-    setActiveKeys((prev) => new Set(prev).add(key.note));
+    if (isPointerDownRef.current) {
+      if (!activeKeys.has(key.note)) {
+        handleVirtualKeyDown(key);
+        setActiveKeys((prev) => new Set(prev).add(key.note));
+      }
+    }
   };
 
   const handlePointerLeave = (key) => {
-    handleVirtualKeyUp(key);
-    setActiveKeys((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(key.note);
-      return newSet;
-    });
+    if (isPointerDownRef.current) {
+      if (activeKeys.has(key.note)) {
+        handleVirtualKeyUp(key);
+        setActiveKeys((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(key.note);
+          return newSet;
+        });
+      }
+    }
   };
 
   return (

@@ -16,24 +16,25 @@ const WhiteKeys = ({
         <WhiteKeyStyled
           key={key.note}
           onPointerDown={(e) => {
-            e.preventDefault();
+            e.preventDefault(); // Prevents default actions like text selection
             handleKeyDown(key);
-            e.target.setPointerCapture(e.pointerId);
+            // Removed pointer capture
           }}
           onPointerUp={(e) => {
             e.preventDefault();
             handleKeyUp(key);
-            e.target.releasePointerCapture(e.pointerId);
+            // Removed pointer release
           }}
           onPointerEnter={(e) => {
-            e.preventDefault();
             handleKeyEnter(key);
           }}
           onPointerLeave={(e) => {
-            e.preventDefault();
             handleKeyLeave(key);
           }}
           active={activeOscillators[`virtual-${key.note}`] !== undefined}
+          role="button"
+          aria-label={`White key ${key.note}`}
+          tabIndex="0"
         />
       ))}
     </WhiteKeysRow>

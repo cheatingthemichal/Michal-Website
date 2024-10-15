@@ -43,22 +43,23 @@ const BlackKeys = ({
             onPointerDown={(e) => {
               e.preventDefault(); // Prevents default actions like text selection
               handleKeyDown(key);
-              e.target.setPointerCapture(e.pointerId); // Capture pointer to continue receiving events
+              // Removed pointer capture to allow events on multiple keys
             }}
             onPointerUp={(e) => {
               e.preventDefault();
               handleKeyUp(key);
-              e.target.releasePointerCapture(e.pointerId); // Release pointer capture
+              // Removed pointer release
             }}
             onPointerEnter={(e) => {
-              e.preventDefault();
               handleKeyEnter(key);
             }}
             onPointerLeave={(e) => {
-              e.preventDefault();
               handleKeyLeave(key);
             }}
             active={activeOscillators[`virtual-${key.note}`] !== undefined}
+            role="button"
+            aria-label={`Black key ${key.note}`}
+            tabIndex="0"
           />
         );
       })}

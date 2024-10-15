@@ -1,7 +1,10 @@
-import { useRef, useState } from 'react';
+// components/MusicWindow/useMusicVisualizer.js
+import { useRef, useState, useEffect } from 'react';
 import Visualizer from './Visualizer';
+import { useSharedAudioContext } from '../../context/AudioContextProvider';
 
 const useMusicVisualizer = (canvasRef) => {
+  const sharedAudioContext = useSharedAudioContext();
   const audioRef = useRef(null);
   const [visualizer, setVisualizer] = useState(null);
   
@@ -24,13 +27,17 @@ const useMusicVisualizer = (canvasRef) => {
   };
 
   const handleAudioSourceChange = (source) => {
-    if (audioRef.current && canvasRef.current) {
+    if (audioRef.current && canvasRef.current && sharedAudioContext) {
+      if (sharedAudioContext.state === 'suspended') {
+        sharedAudioContext.resume();
+      }
       audioRef.current.src = source;
       audioRef.current.load();
       audioRef.current.play();
 
       if (!visualizer) {
         const newVisualizer = new Visualizer(
+          sharedAudioContext, // Use shared AudioContext
           audioRef.current, 
           canvasRef.current,
           controlValues.fftSize,

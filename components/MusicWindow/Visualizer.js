@@ -1,5 +1,8 @@
+// components/MusicWindow/Visualizer.js
+
 class Visualizer {
-  constructor(audioElement, canvasElement, fftSize = 2048, tau = 5, norm = 90, color = 1, version = 'osc', memoryMode = 'off') {
+  constructor(audioContext, audioElement, canvasElement, fftSize = 2048, tau = 5, norm = 90, color = 1, version = 'osc', memoryMode = 'off') {
+    this.audioContext = audioContext;
     this.audioElement = audioElement;
     this.canvasElement = canvasElement;
     this.canvasContext = this.canvasElement.getContext('2d');
@@ -10,13 +13,12 @@ class Visualizer {
     this.version = version;
     this.memoryMode = memoryMode;
 
-    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     this.analyser = this.audioContext.createAnalyser();
     this.analyser.fftSize = this.fftSize;
-    this.analyser.connect(this.audioContext.destination);
 
-    this.audioElement.mediaElementSource = this.audioContext.createMediaElementSource(this.audioElement);
-    this.audioElement.mediaElementSource.connect(this.analyser);
+    this.audioSource = this.audioContext.createMediaElementSource(this.audioElement);
+    this.audioSource.connect(this.analyser);
+    this.analyser.connect(this.audioContext.destination);
 
     this.animationFrameId = null;
 
@@ -27,22 +29,21 @@ class Visualizer {
   }
 
   getStyle(entropy) {
-  
     const baseR = 5 ** (entropy * 21) / this.norm;
     const baseG = 5 ** (entropy * 21) / this.norm;
     const baseB = 5 ** (entropy * 21) / this.norm;
 
-    const paletteR = 10+1/(0.02+Math.abs(0 - this.color));
-    const paletteG = 10+1/(0.02+Math.abs(0.5 - this.color));
-    const paletteB = 10+1/(0.02+Math.abs(1 - this.color));
-  
+    const paletteR = 10 + 1 / (0.02 + Math.abs(0 - this.color));
+    const paletteG = 10 + 1 / (0.02 + Math.abs(0.5 - this.color));
+    const paletteB = 10 + 1 / (0.02 + Math.abs(1 - this.color));
+
     // Apply the palette multipliers to the base colors
-    const r = Math.round(baseR * paletteR/600);
-    const g = Math.round(baseG * paletteG/600);
-    const b = Math.round(baseB * paletteB/600);
-  
+    const r = Math.round(baseR * paletteR / 600);
+    const g = Math.round(baseG * paletteG / 600);
+    const b = Math.round(baseB * paletteB / 600);
+
     return `rgb(${r}, ${g}, ${b})`;
-  }  
+  }
 
   permEntropy(arr) {
     let entropy = 0;
@@ -67,7 +68,7 @@ class Visualizer {
     for (let i = 0; i < arr.length - 2; i += tau) {
       const [first, second, third] = [arr[i], arr[i + 1], arr[i + 2]];
       let pattern;
-  
+
       if (first <= second) {
         if (second <= third) {
           pattern = [0, 1, 2];
@@ -87,7 +88,7 @@ class Visualizer {
           pattern = [2, 1, 0];
         }
       }
-  
+
       const key = pattern.join(',');
       if (ordinals[key]) {
         ordinals[key]++;
@@ -101,7 +102,7 @@ class Visualizer {
   drawBar() {
     const bufferLength = this.analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
-    if (this.version == "bar") {
+    if (this.version === "bar") {
       this.animationFrameId = requestAnimationFrame(this.drawBar);
     }
     else {
@@ -112,7 +113,7 @@ class Visualizer {
     this.analyser.getByteFrequencyData(dataArray);
     const entropy = this.permEntropy(dataArray);
 
-    if (this.memoryMode == 'off') {
+    if (this.memoryMode === 'off') {
       this.canvasContext.clearRect(0, 0, WIDTH, HEIGHT);
     }
 
@@ -122,7 +123,7 @@ class Visualizer {
     let x = 0;
 
     for (let i = 0; i < cutoff; i++) {
-      barHeight = dataArray[i] * (HEIGHT / 256) + 3**(entropy*25)/this.norm; // Scale bar height appropriately
+      barHeight = dataArray[i] * (HEIGHT / 256) + 3 ** (entropy * 25) / this.norm; // Scale bar height appropriately
       const color = this.getStyle(entropy);
       this.canvasContext.fillStyle = color;
       this.canvasContext.fillRect(x, HEIGHT - barHeight, barWidth, barHeight);
@@ -133,7 +134,7 @@ class Visualizer {
   drawOsc() {
     const bufferLength = this.analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
-    if (this.version == "bar") {
+    if (this.version === "bar") {
       this.animationFrameId = requestAnimationFrame(this.drawBar);
     }
     else {
@@ -143,11 +144,11 @@ class Visualizer {
 
     this.analyser.getByteTimeDomainData(dataArray);
     const entropy = this.permEntropy(dataArray);
-    if (this.memoryMode == 'off') {
+    if (this.memoryMode === 'off') {
       this.canvasContext.clearRect(0, 0, WIDTH, HEIGHT);
     }
 
-    this.canvasContext.lineWidth = 3**(entropy*17)/this.norm
+    this.canvasContext.lineWidth = 3 ** (entropy * 17) / this.norm
     const color = this.getStyle(entropy);
     this.canvasContext.strokeStyle = color;
 
@@ -158,7 +159,7 @@ class Visualizer {
 
     for (let i = 0; i < bufferLength; i++) {
       const v = dataArray[i] / 128.0;
-      const y = v * (HEIGHT / 2)+ verticalOffset;
+      const y = v * (HEIGHT / 2) + verticalOffset;
       if (i === 0) {
         this.canvasContext.moveTo(x, y);
       } else {

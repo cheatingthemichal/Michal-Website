@@ -7,6 +7,7 @@ import Controls from './Controls';
 import VirtualKeyboard from './VirtualKeyboard';
 import { Instructions, Container } from './styles';
 import { px } from '@xstyled/styled-components';
+import { useSharedAudioContext } from '../../context/AudioContextProvider';
 
 const ButtonContainer = styled.div`
   display: flex;
@@ -66,15 +67,18 @@ const Synth = ({ onClose, position }) => {
   const [isTwoRows, setIsTwoRows] = useState(false);
   const [distortedFmIntensity, setDistortedFmIntensity] = useState(0); // New state for distorted FM intensity
 
-  // Refs for AudioContext and active oscillators/gains
-  const audioCtxRef = useRef(null);
-  const compressorRef = useRef(null);
+  // Refs for active oscillators/gains
   const activeOscillatorsRef = useRef({});
   const activeGainsRef = useRef({});
+  const compressorRef = useRef(null); // We will use shared AudioContext
+
+  // Get shared AudioContext
+  const audioContext = useSharedAudioContext();
 
   // Ref to store current parameters
   const parametersRef = useRef({
     waveform,
+    pulseWidth,
     additiveMode,
     numPartials,
     distPartials,
@@ -113,8 +117,8 @@ const Synth = ({ onClose, position }) => {
     Object.values(activeOscillatorsRef.current).forEach((oscList) => {
       // Update main oscillators' waveform
       oscList.mainOscillators.forEach((osc) => {
-        if (waveform !== 'pulse') {
-          osc.type = waveform;
+        if (currentWaveform !== 'pulse') {
+          osc.type = currentWaveform;
         } else {
           updatePulseWave(osc, pulseWidth);
         }
@@ -122,26 +126,26 @@ const Synth = ({ onClose, position }) => {
 
       // Update AM frequency if AM is on
       if (oscList.amMod) {
-        oscList.amMod.frequency.setValueAtTime(currentAmFreq, audioCtxRef.current.currentTime);
-        // console.log(Updated AM frequency to ${currentAmFreq});
+        oscList.amMod.frequency.setValueAtTime(currentAmFreq, audioContext.currentTime);
+        // console.log(`Updated AM frequency to ${currentAmFreq}`);
       }
 
       // Update FM frequency if FM is on
       if (oscList.fmMod) {
-        oscList.fmMod.frequency.setValueAtTime(currentFmFreq, audioCtxRef.current.currentTime);
-        // console.log(Updated FM frequency to ${currentFmFreq});
+        oscList.fmMod.frequency.setValueAtTime(currentFmFreq, audioContext.currentTime);
+        // console.log(`Updated FM frequency to ${currentFmFreq}`);
       }
 
       // Update LFO frequency if LFO is on
       if (oscList.lfo) {
-        oscList.lfo.frequency.setValueAtTime(currentLfoFreq, audioCtxRef.current.currentTime);
-        // console.log(Updated LFO frequency to ${currentLfoFreq});
+        oscList.lfo.frequency.setValueAtTime(currentLfoFreq, audioContext.currentTime);
+        // console.log(`Updated LFO frequency to ${currentLfoFreq}`);
       }
 
       // Update distorted FM intensity if applicable
       if (oscList.distortedFmMod && oscList.distortedFmGain) {
-        oscList.distortedFmGain.gain.setValueAtTime(100 * currentDistortedFmIntensity, audioCtxRef.current.currentTime);
-        // console.log(Updated distorted FM intensity to ${currentDistortedFmIntensity});
+        oscList.distortedFmGain.gain.setValueAtTime(100 * currentDistortedFmIntensity, audioContext.currentTime);
+        // console.log(`Updated distorted FM intensity to ${currentDistortedFmIntensity}`);
       }
     });
   }, [
@@ -158,6 +162,7 @@ const Synth = ({ onClose, position }) => {
     lfoFrequency,
     crazy,
     distortedFmIntensity,
+    audioContext,
   ]);
 
   // Function to create a pulse wave oscillator
@@ -206,22 +211,16 @@ const Synth = ({ onClose, position }) => {
     }, {});
   }, []);
 
-  // Initialize AudioContext and Compressor once
+  // Initialize Compressor once
   useEffect(() => {
-    // Initialize AudioContext
-    audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-    const audioCtx = audioCtxRef.current;
-
-    // Create Global Gain Node
-    const globalGain = audioCtx.createGain();
-    globalGain.connect(audioCtx.destination);
-
-    // Create Compressor and connect to Global Gain
-    const compressor = audioCtx.createDynamicsCompressor();
-    compressor.threshold.setValueAtTime(-50, audioCtx.currentTime);
-    // You can adjust compressor settings here if needed
-    compressor.connect(globalGain);
-    compressorRef.current = compressor;
+    if (audioContext && !compressorRef.current) {
+      // Create Compressor and connect to AudioContext destination
+      const compressor = audioContext.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-50, audioContext.currentTime);
+      // You can adjust compressor settings here if needed
+      compressor.connect(audioContext.destination);
+      compressorRef.current = compressor;
+    }
 
     // Event listeners for keyboard
     const handleKeyDown = (event) => {
@@ -258,9 +257,8 @@ const Synth = ({ onClose, position }) => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      audioCtx.close();
     };
-  }, [keyboardFrequencyMap]);
+  }, [keyboardFrequencyMap, audioContext]);
 
   // Function to play a note
   const playNote = (
@@ -272,7 +270,8 @@ const Synth = ({ onClose, position }) => {
     fmFreq,
     lfoFreq
   ) => {
-    const audioCtx = audioCtxRef.current;
+    if (!audioContext) return;
+
     const currentParams = parametersRef.current;
 
     // Initialize structure for the key if not present
@@ -301,13 +300,13 @@ const Synth = ({ onClose, position }) => {
     for (let i = 0; i < numPartials; i++) {
       let osc;
       if (currentParams.waveform === 'pulse') {
-        const { osc: pulseOsc, pulseShaper } = createPulseOscillator(audioCtx, frequency + i * distPartials, currentParams.pulseWidth);
+        const { osc: pulseOsc, pulseShaper } = createPulseOscillator(audioContext, frequency + i * distPartials, currentParams.pulseWidth);
         osc = pulseOsc;
         osc.pulseShaper = pulseShaper;
       } else {
-        osc = audioCtx.createOscillator();
+        osc = audioContext.createOscillator();
         osc.type = currentParams.waveform;
-        osc.frequency.setValueAtTime(frequency + i * distPartials, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(frequency + i * distPartials, audioContext.currentTime);
       }
       
       oscillators.push(osc);
@@ -315,9 +314,9 @@ const Synth = ({ onClose, position }) => {
     }
 
     // Create Gain Node for the main signal
-    const gainNode = audioCtx.createGain();
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.1); // Fade in
+    const gainNode = audioContext.createGain();
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.1); // Fade in
     oscillators.forEach((osc) => {
       if (currentParams.waveform === 'pulse') {
         osc.pulseShaper.connect(gainNode);
@@ -331,7 +330,7 @@ const Synth = ({ onClose, position }) => {
     if (compressorRef.current) {
       gainNode.connect(compressorRef.current);
     } else {
-      gainNode.connect(audioCtx.destination);
+      gainNode.connect(audioContext.destination);
     }
 
     // Store Gain Node
@@ -339,10 +338,10 @@ const Synth = ({ onClose, position }) => {
 
     // AM Modulation
     if (amFreq > 0 && currentParams.amMode === 'on') {
-      const amMod = audioCtx.createOscillator();
+      const amMod = audioContext.createOscillator();
       amMod.frequency.value = amFreq;
 
-      const amGain = audioCtx.createGain();
+      const amGain = audioContext.createGain();
       amGain.gain.value = 0.5; // Modulation depth for AM
 
       amMod.connect(amGain);
@@ -356,10 +355,10 @@ const Synth = ({ onClose, position }) => {
 
     // FM Modulation (Correct Implementation)
     if (fmFreq > 0 && currentParams.fmMode === 'on') {
-      const fmMod = audioCtx.createOscillator();
+      const fmMod = audioContext.createOscillator();
       fmMod.frequency.value = fmFreq;
 
-      const fmGain = audioCtx.createGain();
+      const fmGain = audioContext.createGain();
       fmGain.gain.value = 100; // Modulation index for FM
 
       fmMod.connect(fmGain);
@@ -376,13 +375,13 @@ const Synth = ({ onClose, position }) => {
 
     // Distorted FM Modulation (Old Implementation)
     if (fmFreq > 0 && currentParams.distortedFmIntensity > 0 && currentParams.fmMode === 'on') {
-      const distortedFmMod = audioCtx.createOscillator();
+      const distortedFmMod = audioContext.createOscillator();
       distortedFmMod.frequency.value = fmFreq;
 
-      const distortedFmGain = audioCtx.createGain();
+      const distortedFmGain = audioContext.createGain();
       distortedFmGain.gain.value = 100 * currentParams.distortedFmIntensity; // Scaled by intensity
 
-      distortedFmMod.connect(distortedFmGain).connect(audioCtx.destination);
+      distortedFmMod.connect(distortedFmGain).connect(audioContext.destination);
       distortedFmMod.start();
 
       activeOscillatorsRef.current[key].distortedFmMod = distortedFmMod;
@@ -391,10 +390,10 @@ const Synth = ({ onClose, position }) => {
 
     // LFO Modulation
     if (lfoFreq > 0 && currentParams.lfoMode === 'on') {
-      const lfo = audioCtx.createOscillator();
+      const lfo = audioContext.createOscillator();
       lfo.frequency.value = lfoFreq;
 
-      const lfoGain = audioCtx.createGain();
+      const lfoGain = audioContext.createGain();
       lfoGain.gain.value = 0.5; // Modulation depth for LFO
 
       lfo.connect(lfoGain);
@@ -409,55 +408,56 @@ const Synth = ({ onClose, position }) => {
 
   // Function to stop a note
   const stopNote = (key) => {
-    const audioCtx = audioCtxRef.current;
+    if (!audioContext) return;
+
     const gainNodes = activeGainsRef.current[key]?.gainNodes || [];
     const { amMod, fmMod, distortedFmMod, lfo } = activeOscillatorsRef.current[key] || {};
     const { amGain, fmGain, distortedFmGain, lfoGain } = activeGainsRef.current[key] || {};
 
     // Fade out gain nodes
     gainNodes.forEach((gainNode) => {
-      gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
-      gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3); // Fade out
+      gainNode.gain.cancelScheduledValues(audioContext.currentTime);
+      gainNode.gain.setValueAtTime(gainNode.gain.value, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.3); // Fade out
     });
 
     // Fade out and stop AM modulation oscillator
     if (amMod && amGain) {
-      amGain.gain.cancelScheduledValues(audioCtx.currentTime);
-      amGain.gain.setValueAtTime(amGain.gain.value, audioCtx.currentTime);
-      amGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
-      amMod.stop(audioCtx.currentTime + 0.3);
+      amGain.gain.cancelScheduledValues(audioContext.currentTime);
+      amGain.gain.setValueAtTime(amGain.gain.value, audioContext.currentTime);
+      amGain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.3);
+      amMod.stop(audioContext.currentTime + 0.3);
     }
 
     // Fade out and stop FM modulation oscillator
     if (fmMod && fmGain) {
-      fmGain.gain.cancelScheduledValues(audioCtx.currentTime);
-      fmGain.gain.setValueAtTime(fmGain.gain.value, audioCtx.currentTime);
-      fmGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
-      fmMod.stop(audioCtx.currentTime + 0.3);
+      fmGain.gain.cancelScheduledValues(audioContext.currentTime);
+      fmGain.gain.setValueAtTime(fmGain.gain.value, audioContext.currentTime);
+      fmGain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.3);
+      fmMod.stop(audioContext.currentTime + 0.3);
     }
 
     // Fade out and stop Distorted FM modulation oscillator
     if (distortedFmMod && distortedFmGain) {
-      distortedFmGain.gain.cancelScheduledValues(audioCtx.currentTime);
-      distortedFmGain.gain.setValueAtTime(distortedFmGain.gain.value, audioCtx.currentTime);
-      distortedFmGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
-      distortedFmMod.stop(audioCtx.currentTime + 0.3);
+      distortedFmGain.gain.cancelScheduledValues(audioContext.currentTime);
+      distortedFmGain.gain.setValueAtTime(distortedFmGain.gain.value, audioContext.currentTime);
+      distortedFmGain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.3);
+      distortedFmMod.stop(audioContext.currentTime + 0.3);
     }
 
     // Fade out and stop LFO oscillator
     if (lfo && lfoGain) {
-      lfoGain.gain.cancelScheduledValues(audioCtx.currentTime);
-      lfoGain.gain.setValueAtTime(lfoGain.gain.value, audioCtx.currentTime);
-      lfoGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
-      lfo.stop(audioCtx.currentTime + 0.3);
+      lfoGain.gain.cancelScheduledValues(audioContext.currentTime);
+      lfoGain.gain.setValueAtTime(lfoGain.gain.value, audioContext.currentTime);
+      lfoGain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.3);
+      lfo.stop(audioContext.currentTime + 0.3);
     }
 
     // Stop main oscillators
     const mainOscillators = activeOscillatorsRef.current[key]?.mainOscillators || [];
     mainOscillators.forEach((osc) => {
       try {
-        osc.stop(audioCtx.currentTime + 0.3);
+        osc.stop(audioContext.currentTime + 0.3);
       } catch (e) {
         // Oscillator might have already been stopped
       }
@@ -491,7 +491,8 @@ const Synth = ({ onClose, position }) => {
 
   // Function to play a crazy note
   const playCrazy = () => {
-    const audioCtx = audioCtxRef.current;
+    if (!audioContext) return;
+
     const currentParams = parametersRef.current;
     const whiteKeysList = KEYS.filter((key) => key.type === 'white'); // Prefer white keys for crazy mode
     const shuffledKeys = shuffleArray([...whiteKeysList]);

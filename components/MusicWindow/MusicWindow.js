@@ -6,7 +6,6 @@ import ControlElements from './ControlElements';
 import useMusicVisualizer from './useMusicVisualizer';
 import ReactDOM from 'react-dom';
 
-
 const MusicWindow = ({
   onClose,
   canvasRef,

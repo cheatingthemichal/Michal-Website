@@ -206,6 +206,18 @@ const Synth = ({ onClose, position }) => {
     }, {});
   }, []);
 
+  // Function to resume AudioContext if suspended
+  const resumeAudioContext = async () => {
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      try {
+        await audioCtxRef.current.resume();
+        console.log('AudioContext resumed');
+      } catch (e) {
+        console.error('Failed to resume AudioContext:', e);
+      }
+    }
+  };
+
   // Initialize AudioContext and Compressor once
   useEffect(() => {
     // Initialize AudioContext
@@ -224,9 +236,11 @@ const Synth = ({ onClose, position }) => {
     compressorRef.current = compressor;
 
     // Event listeners for keyboard
-    const handleKeyDown = (event) => {
+    const handleKeyDown = async (event) => {
       const keyCode = event.keyCode.toString();
       const currentParams = parametersRef.current;
+
+      await resumeAudioContext(); // Resume AudioContext on key down
 
       if (keyboardFrequencyMap[keyCode] && !activeOscillatorsRef.current[keyCode]) {
         if (currentParams.crazy) {
@@ -626,7 +640,10 @@ const Synth = ({ onClose, position }) => {
         {showKeyboard && (
           <VirtualKeyboard
             keys={KEYS}
-            handleVirtualKeyDown={handleVirtualKeyDown}
+            handleVirtualKeyDown={(key) => {
+              resumeAudioContext(); // Resume on virtual key down
+              handleVirtualKeyDown(key);
+            }}
             handleVirtualKeyUp={handleVirtualKeyUp}
             activeOscillators={activeOscillatorsRef.current}
             isTwoRows={isTwoRows}

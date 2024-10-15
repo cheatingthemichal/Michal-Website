@@ -2,7 +2,7 @@
 import React from 'react';
 import { WhiteKeysRow, WhiteKeyStyled } from '../styles';
 
-const WhiteKeys = React.memo(({
+const WhiteKeys = ({
   keys,
   handleKeyDown,
   handleKeyUp,
@@ -15,14 +15,15 @@ const WhiteKeys = React.memo(({
       {keys.map((key) => (
         <WhiteKeyStyled
           key={key.note}
-          data-note={key.note} // Assign unique identifier
           onPointerDown={(e) => {
             e.preventDefault(); // Prevents default actions like text selection
             handleKeyDown(key);
+            // Removed pointer capture
           }}
           onPointerUp={(e) => {
             e.preventDefault();
             handleKeyUp(key);
+            // Removed pointer release
           }}
           onPointerEnter={(e) => {
             handleKeyEnter(key);
@@ -38,6 +39,6 @@ const WhiteKeys = React.memo(({
       ))}
     </WhiteKeysRow>
   );
-});
+};
 
 export default WhiteKeys;

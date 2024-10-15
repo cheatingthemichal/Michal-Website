@@ -18,7 +18,7 @@ const blackKeyOffsetsSmall = {
   'A#': 195,
 };
 
-const BlackKeys = React.memo(({
+const BlackKeys = ({
   keys,
   handleKeyDown,
   handleKeyUp,
@@ -40,14 +40,15 @@ const BlackKeys = React.memo(({
           <BlackKeyStyled
             key={key.note}
             style={{ left: `${leftOffset}px` }}
-            data-note={key.note} // Assign unique identifier
             onPointerDown={(e) => {
               e.preventDefault(); // Prevents default actions like text selection
               handleKeyDown(key);
+              // Removed pointer capture to allow events on multiple keys
             }}
             onPointerUp={(e) => {
               e.preventDefault();
               handleKeyUp(key);
+              // Removed pointer release
             }}
             onPointerEnter={(e) => {
               handleKeyEnter(key);
@@ -64,6 +65,6 @@ const BlackKeys = React.memo(({
       })}
     </>
   );
-});
+};
 
 export default BlackKeys;

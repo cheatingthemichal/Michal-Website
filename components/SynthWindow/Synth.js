@@ -275,13 +275,7 @@ const Synth = ({ onClose, position }) => {
 
     // Ensure AudioContext is running
     if (audioContext.state === 'suspended') {
-      try {
-        await audioContext.resume();
-        console.log('AudioContext resumed from Synth playNote');
-      } catch (e) {
-        console.error('Failed to resume AudioContext in Synth playNote:', e);
-        return;
-      }
+      audioContext.resume();
     }
 
     const currentParams = parametersRef.current;

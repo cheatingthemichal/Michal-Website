@@ -6,6 +6,7 @@ import styled from 'styled-components';
 import Controls from './Controls';
 import VirtualKeyboard from './VirtualKeyboard';
 import { Instructions, Container } from './styles';
+import { px } from '@xstyled/styled-components';
 
 const ButtonContainer = styled.div`
   display: flex;
@@ -122,25 +123,25 @@ const Synth = ({ onClose, position }) => {
       // Update AM frequency if AM is on
       if (oscList.amMod) {
         oscList.amMod.frequency.setValueAtTime(currentAmFreq, audioCtxRef.current.currentTime);
-        // console.log(`Updated AM frequency to ${currentAmFreq}`);
+        // console.log(Updated AM frequency to ${currentAmFreq});
       }
 
       // Update FM frequency if FM is on
       if (oscList.fmMod) {
         oscList.fmMod.frequency.setValueAtTime(currentFmFreq, audioCtxRef.current.currentTime);
-        // console.log(`Updated FM frequency to ${currentFmFreq}`);
+        // console.log(Updated FM frequency to ${currentFmFreq});
       }
 
       // Update LFO frequency if LFO is on
       if (oscList.lfo) {
         oscList.lfo.frequency.setValueAtTime(currentLfoFreq, audioCtxRef.current.currentTime);
-        // console.log(`Updated LFO frequency to ${currentLfoFreq}`);
+        // console.log(Updated LFO frequency to ${currentLfoFreq});
       }
 
       // Update distorted FM intensity if applicable
       if (oscList.distortedFmMod && oscList.distortedFmGain) {
         oscList.distortedFmGain.gain.setValueAtTime(100 * currentDistortedFmIntensity, audioCtxRef.current.currentTime);
-        // console.log(`Updated distorted FM intensity to ${currentDistortedFmIntensity}`);
+        // console.log(Updated distorted FM intensity to ${currentDistortedFmIntensity});
       }
     });
   }, [
@@ -223,15 +224,15 @@ const Synth = ({ onClose, position }) => {
     compressorRef.current = compressor;
 
     // Event listeners for keyboard
-    const handleKeyDown = async (event) => {
+    const handleKeyDown = (event) => {
       const keyCode = event.keyCode.toString();
       const currentParams = parametersRef.current;
-    
+
       if (keyboardFrequencyMap[keyCode] && !activeOscillatorsRef.current[keyCode]) {
         if (currentParams.crazy) {
-          await playCrazy(); // Make sure playCrazy is also async if necessary
+          playCrazy();
         } else {
-          await playNote(
+          playNote(
             keyCode,
             keyboardFrequencyMap[keyCode],
             currentParams.additiveMode === 'on' ? parseInt(currentParams.numPartials) : 1,
@@ -262,7 +263,7 @@ const Synth = ({ onClose, position }) => {
   }, [keyboardFrequencyMap]);
 
   // Function to play a note
-  const playNote = async (
+  const playNote = (
     key,
     frequency,
     numPartials,
@@ -272,18 +273,6 @@ const Synth = ({ onClose, position }) => {
     lfoFreq
   ) => {
     const audioCtx = audioCtxRef.current;
-  
-    // Resume AudioContext if it's suspended
-    if (audioCtx.state === 'suspended') {
-      try {
-        await audioCtx.resume();
-        console.log('AudioContext resumed');
-      } catch (error) {
-        console.error('Failed to resume AudioContext:', error);
-        return; // Exit if unable to resume
-      }
-    }
-  
     const currentParams = parametersRef.current;
 
     // Initialize structure for the key if not present
@@ -530,14 +519,14 @@ const Synth = ({ onClose, position }) => {
     }
   };
 
-  const handleVirtualKeyDown = async (key) => {
+  const handleVirtualKeyDown = (key) => {
     const currentParams = parametersRef.current;
     if (currentParams.crazy) {
-      await playCrazy(); // Ensure playCrazy handles async correctly
+      playCrazy();
     } else {
       const virtualKey = `virtual-${key.note}`;
       if (!activeOscillatorsRef.current[virtualKey]) {
-        await playNote(
+        playNote(
           virtualKey,
           key.frequency,
           currentParams.additiveMode === 'on' ? currentParams.numPartials : 1,
@@ -549,7 +538,7 @@ const Synth = ({ onClose, position }) => {
       }
     }
   };
-  
+
   // Function to handle virtual key release
   const handleVirtualKeyUp = (key) => {
     const virtualKey = `virtual-${key.note}`;

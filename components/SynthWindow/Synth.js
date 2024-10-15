@@ -169,7 +169,7 @@ const Synth = ({ onClose, position }) => {
   const createPulseOscillator = (audioCtx, frequency, pulseWidth) => {
     const osc = audioCtx.createOscillator();
     const pulseShaper = audioCtx.createWaveShaper();
-    
+
     const createPulseCurve = (pulseWidth) => {
       const curves = new Float32Array(256);
       for (let i = 0; i < 128; i++) {
@@ -220,6 +220,7 @@ const Synth = ({ onClose, position }) => {
       // You can adjust compressor settings here if needed
       compressor.connect(audioContext.destination);
       compressorRef.current = compressor;
+      console.log('Compressor initialized and connected to AudioContext');
     }
 
     // Event listeners for keyboard
@@ -261,7 +262,7 @@ const Synth = ({ onClose, position }) => {
   }, [keyboardFrequencyMap, audioContext]);
 
   // Function to play a note
-  const playNote = (
+  const playNote = async (
     key,
     frequency,
     numPartials,
@@ -271,6 +272,17 @@ const Synth = ({ onClose, position }) => {
     lfoFreq
   ) => {
     if (!audioContext) return;
+
+    // Ensure AudioContext is running
+    if (audioContext.state === 'suspended') {
+      try {
+        await audioContext.resume();
+        console.log('AudioContext resumed from Synth playNote');
+      } catch (e) {
+        console.error('Failed to resume AudioContext in Synth playNote:', e);
+        return;
+      }
+    }
 
     const currentParams = parametersRef.current;
 

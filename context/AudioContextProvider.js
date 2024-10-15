@@ -10,8 +10,13 @@ export const AudioContextProvider = ({ children }) => {
     if (!audioContext) {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       setAudioContext(ctx);
+      console.log('AudioContext initialized');
     } else if (audioContext.state === 'suspended') {
-      audioContext.resume();
+      audioContext.resume().then(() => {
+        console.log('AudioContext resumed');
+      }).catch((e) => {
+        console.error('AudioContext resume failed:', e);
+      });
     }
   };
 
@@ -20,16 +25,16 @@ export const AudioContextProvider = ({ children }) => {
     const handleUserInteraction = () => {
       initAudioContext();
       // Remove event listeners after initialization
-      window.removeEventListener('click', handleUserInteraction);
-      window.removeEventListener('touchstart', handleUserInteraction);
+      window.removeEventListener('pointerdown', handleUserInteraction);
+      window.removeEventListener('keydown', handleUserInteraction);
     };
 
-    window.addEventListener('click', handleUserInteraction);
-    window.addEventListener('touchstart', handleUserInteraction);
+    window.addEventListener('pointerdown', handleUserInteraction, { once: true });
+    window.addEventListener('keydown', handleUserInteraction, { once: true });
 
     return () => {
-      window.removeEventListener('click', handleUserInteraction);
-      window.removeEventListener('touchstart', handleUserInteraction);
+      window.removeEventListener('pointerdown', handleUserInteraction);
+      window.removeEventListener('keydown', handleUserInteraction);
     };
   }, [audioContext]);
 

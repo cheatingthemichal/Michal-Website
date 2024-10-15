@@ -4,10 +4,10 @@ import WhiteKeys from './WhiteKeys';
 import BlackKeys from './BlackKeys';
 
 const VirtualKeyboard = ({ keys, handleVirtualKeyDown, handleVirtualKeyUp, activeOscillators, isTwoRows }) => {
-  const [isMouseDown, setIsMouseDown] = useState(false);
-  const [activeKey, setActiveKey] = useState(null);
   const firstOctave = keys.filter((key) => key.note.endsWith('4'));
   const secondOctave = keys.filter((key) => key.note.endsWith('5') || key.note === 'C6');
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [activeKey, setActiveKey] = useState(null);
 
   const handleMouseDown = (key) => {
     setIsMouseDown(true);
@@ -37,6 +37,7 @@ const VirtualKeyboard = ({ keys, handleVirtualKeyDown, handleVirtualKeyUp, activ
       setActiveKey(null);  // Clear the active key on leave
     }
   };
+
 
   return (
     <VirtualKeyboardContainer style={{ flexDirection: isTwoRows ? 'column' : 'row' }}>

@@ -7,7 +7,7 @@ import Controls from './Controls';
 import VirtualKeyboard from './VirtualKeyboard';
 import { Instructions, Container } from './styles';
 import { px } from '@xstyled/styled-components';
-import { useSharedAudioContext } from '../../context/AudioContextProvider';
+import { useSharedAudioContext } from '../context/AudioContextProvider';
 
 const ButtonContainer = styled.div`
   display: flex;

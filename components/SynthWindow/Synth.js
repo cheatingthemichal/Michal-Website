@@ -223,15 +223,15 @@ const Synth = ({ onClose, position }) => {
     compressorRef.current = compressor;
 
     // Event listeners for keyboard
-    const handleKeyDown = (event) => {
+    const handleKeyDown = async (event) => {
       const keyCode = event.keyCode.toString();
       const currentParams = parametersRef.current;
-
+    
       if (keyboardFrequencyMap[keyCode] && !activeOscillatorsRef.current[keyCode]) {
         if (currentParams.crazy) {
-          playCrazy();
+          await playCrazy(); // Make sure playCrazy is also async if necessary
         } else {
-          playNote(
+          await playNote(
             keyCode,
             keyboardFrequencyMap[keyCode],
             currentParams.additiveMode === 'on' ? parseInt(currentParams.numPartials) : 1,
@@ -262,7 +262,7 @@ const Synth = ({ onClose, position }) => {
   }, [keyboardFrequencyMap]);
 
   // Function to play a note
-  const playNote = (
+  const playNote = async (
     key,
     frequency,
     numPartials,
@@ -272,6 +272,18 @@ const Synth = ({ onClose, position }) => {
     lfoFreq
   ) => {
     const audioCtx = audioCtxRef.current;
+  
+    // Resume AudioContext if it's suspended
+    if (audioCtx.state === 'suspended') {
+      try {
+        await audioCtx.resume();
+        console.log('AudioContext resumed');
+      } catch (error) {
+        console.error('Failed to resume AudioContext:', error);
+        return; // Exit if unable to resume
+      }
+    }
+  
     const currentParams = parametersRef.current;
 
     // Initialize structure for the key if not present
@@ -518,14 +530,14 @@ const Synth = ({ onClose, position }) => {
     }
   };
 
-  const handleVirtualKeyDown = (key) => {
+  const handleVirtualKeyDown = async (key) => {
     const currentParams = parametersRef.current;
     if (currentParams.crazy) {
-      playCrazy();
+      await playCrazy(); // Ensure playCrazy handles async correctly
     } else {
       const virtualKey = `virtual-${key.note}`;
       if (!activeOscillatorsRef.current[virtualKey]) {
-        playNote(
+        await playNote(
           virtualKey,
           key.frequency,
           currentParams.additiveMode === 'on' ? currentParams.numPartials : 1,
@@ -537,7 +549,7 @@ const Synth = ({ onClose, position }) => {
       }
     }
   };
-
+  
   // Function to handle virtual key release
   const handleVirtualKeyUp = (key) => {
     const virtualKey = `virtual-${key.note}`;

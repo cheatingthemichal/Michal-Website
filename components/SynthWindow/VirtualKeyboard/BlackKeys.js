@@ -1,3 +1,4 @@
+// components/BlackKeys.js
 import React from 'react';
 import { BlackKeyStyled } from '../styles';
 
@@ -17,7 +18,14 @@ const blackKeyOffsetsSmall = {
   'A#': 195,
 };
 
-const BlackKeys = ({ keys, handleKeyDown, handleKeyUp, handleKeyEnter, handleKeyLeave, activeOscillators }) => {
+const BlackKeys = ({
+  keys,
+  handleKeyDown,
+  handleKeyUp,
+  handleKeyEnter,
+  handleKeyLeave,
+  activeOscillators,
+}) => {
   const isSmallScreen = window.innerWidth <= 600;
   const offsets = isSmallScreen ? blackKeyOffsetsSmall : blackKeyOffsets;
 
@@ -32,14 +40,24 @@ const BlackKeys = ({ keys, handleKeyDown, handleKeyUp, handleKeyEnter, handleKey
           <BlackKeyStyled
             key={key.note}
             style={{ left: `${leftOffset}px` }}
-            onMouseDown={() => handleKeyDown(key)}
-            onMouseUp={() => handleKeyUp(key)}
-            onMouseEnter={() => handleKeyEnter(key)}
-            onMouseLeave={() => handleKeyLeave(key)}
-            onTouchStart={() => handleKeyDown(key)}
-            onTouchEnd={() => handleKeyUp(key)}
-            onTouchMove={() => handleKeyEnter(key)}
-            onTouchCancel={() => handleKeyLeave(key)}
+            onPointerDown={(e) => {
+              e.preventDefault(); // Prevents default actions like text selection
+              handleKeyDown(key);
+              e.target.setPointerCapture(e.pointerId); // Capture pointer to continue receiving events
+            }}
+            onPointerUp={(e) => {
+              e.preventDefault();
+              handleKeyUp(key);
+              e.target.releasePointerCapture(e.pointerId); // Release pointer capture
+            }}
+            onPointerEnter={(e) => {
+              e.preventDefault();
+              handleKeyEnter(key);
+            }}
+            onPointerLeave={(e) => {
+              e.preventDefault();
+              handleKeyLeave(key);
+            }}
             active={activeOscillators[`virtual-${key.note}`] !== undefined}
           />
         );

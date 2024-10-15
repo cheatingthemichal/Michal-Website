@@ -1,79 +1,89 @@
+// components/VirtualKeyboard.js
 import React, { useState } from 'react';
 import { VirtualKeyboardContainer, OctaveContainer } from '../styles';
 import WhiteKeys from './WhiteKeys';
 import BlackKeys from './BlackKeys';
 
-const VirtualKeyboard = ({ keys, handleVirtualKeyDown, handleVirtualKeyUp, activeOscillators, isTwoRows }) => {
+const VirtualKeyboard = ({
+  keys,
+  handleVirtualKeyDown,
+  handleVirtualKeyUp,
+  activeOscillators,
+  isTwoRows,
+}) => {
   const firstOctave = keys.filter((key) => key.note.endsWith('4'));
-  const secondOctave = keys.filter((key) => key.note.endsWith('5') || key.note === 'C6');
-  const [isMouseDown, setIsMouseDown] = useState(false);
-  const [activeKey, setActiveKey] = useState(null);
+  const secondOctave = keys.filter(
+    (key) => key.note.endsWith('5') || key.note === 'C6'
+  );
+  const [activeKeys, setActiveKeys] = useState(new Set());
 
-  const handleMouseDown = (key) => {
-    setIsMouseDown(true);
+  const handlePointerDown = (key) => {
     handleVirtualKeyDown(key);
-    setActiveKey(key);  // Track the current active key
+    setActiveKeys((prev) => new Set(prev).add(key.note));
   };
 
-  const handleMouseUp = (key) => {
-    setIsMouseDown(false);
+  const handlePointerUp = (key) => {
     handleVirtualKeyUp(key);
-    setActiveKey(null);  // Clear the active key when mouse is released
+    setActiveKeys((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(key.note);
+      return newSet;
+    });
   };
 
-  const handleMouseEnter = (key) => {
-    if (isMouseDown) {
-      if (activeKey && activeKey.note !== key.note) {
-        handleVirtualKeyUp(activeKey);  // Stop the previous key
-      }
-      handleVirtualKeyDown(key);  // Start the new key
-      setActiveKey(key);  // Update the active key
-    }
+  const handlePointerEnter = (key) => {
+    // Optional: Handle pointer entering a key while pressed (e.g., dragging)
+    // For simplicity, this example allows multiple keys without interruption
+    handleVirtualKeyDown(key);
+    setActiveKeys((prev) => new Set(prev).add(key.note));
   };
 
-  const handleMouseLeave = (key) => {
-    if (isMouseDown && activeKey && activeKey.note === key.note) {
-      handleVirtualKeyUp(key);  // Stop the key when the mouse leaves
-      setActiveKey(null);  // Clear the active key on leave
-    }
+  const handlePointerLeave = (key) => {
+    handleVirtualKeyUp(key);
+    setActiveKeys((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(key.note);
+      return newSet;
+    });
   };
-
 
   return (
-    <VirtualKeyboardContainer style={{ flexDirection: isTwoRows ? 'column' : 'row' }}>
+    <VirtualKeyboardContainer
+      style={{ flexDirection: isTwoRows ? 'column' : 'row' }}
+    >
       <OctaveContainer>
         <WhiteKeys
           keys={firstOctave.filter((key) => key.type === 'white')}
-          handleKeyDown={handleMouseDown}
-          handleKeyUp={handleMouseUp}
-          handleKeyEnter={handleMouseEnter}
-          handleKeyLeave={handleMouseLeave}
+          handleKeyDown={handlePointerDown}
+          handleKeyUp={handlePointerUp}
+          handleKeyEnter={handlePointerEnter}
+          handleKeyLeave={handlePointerLeave}
           activeOscillators={activeOscillators}
         />
         <BlackKeys
           keys={firstOctave.filter((key) => key.type === 'black')}
-          handleKeyDown={handleMouseDown}
-          handleKeyUp={handleMouseUp}
-          handleKeyEnter={handleMouseEnter}
-          handleKeyLeave={handleMouseLeave}
+          handleKeyDown={handlePointerDown}
+          handleKeyUp={handlePointerUp}
+          handleKeyEnter={handlePointerEnter}
+          handleKeyLeave={handlePointerLeave}
           activeOscillators={activeOscillators}
         />
       </OctaveContainer>
       <OctaveContainer>
         <WhiteKeys
           keys={secondOctave.filter((key) => key.type === 'white')}
-          handleKeyDown={handleMouseDown}
-          handleKeyUp={handleMouseUp}
-          handleKeyEnter={handleMouseEnter}
-          handleKeyLeave={handleMouseLeave}
+          handleKeyDown={handlePointerDown}
+          handleKeyUp={handlePointerUp}
+          handleKeyEnter={handlePointerEnter}
+          handleKeyLeave={handlePointerLeave}
           activeOscillators={activeOscillators}
         />
         <BlackKeys
           keys={secondOctave.filter((key) => key.type === 'black')}
-          handleKeyDown={handleMouseDown}
-          handleKeyUp={handleMouseUp}
-          handleKeyEnter={handleMouseEnter}
-          handleKeyLeave={handleMouseLeave}
+          handleKeyDown={handlePointerDown}
+          handleKeyUp={handlePointerUp}
+          handleKeyEnter={handlePointerEnter}
+          handleKeyLeave={handlePointerLeave}
           activeOscillators={activeOscillators}
         />
       </OctaveContainer>

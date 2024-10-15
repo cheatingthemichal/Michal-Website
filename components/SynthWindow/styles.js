@@ -94,6 +94,7 @@ export const WhiteKeyStyled = styled.div`
   position: relative;
   box-shadow: ${({ active }) => (active ? 'inset 0px 0px 5px #000' : 'none')};
   cursor: pointer;
+  touch-action: none;
   margin: 0 2px;
 
   @media (max-width: 600px) {
@@ -109,6 +110,7 @@ export const BlackKeyStyled = styled.div`
   border-radius: 4px;
   position: absolute;
   z-index: 2;
+  touch-action: none;
   cursor: pointer;
   box-shadow: ${({ active }) => (active ? 'inset 0px 0px 5px #fff' : 'none')};
   

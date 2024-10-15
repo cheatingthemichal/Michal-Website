@@ -7,7 +7,6 @@ import Controls from './Controls';
 import VirtualKeyboard from './VirtualKeyboard';
 import { Instructions, Container } from './styles';
 
-// Styled Components
 const ButtonContainer = styled.div`
   display: flex;
   gap: 10px;
@@ -75,7 +74,6 @@ const Synth = ({ onClose, position }) => {
   // Ref to store current parameters
   const parametersRef = useRef({
     waveform,
-    pulseWidth,
     additiveMode,
     numPartials,
     distPartials,
@@ -108,13 +106,7 @@ const Synth = ({ onClose, position }) => {
     };
 
     // Destructure current parameters for ease of use
-    const {
-      waveform: currentWaveform,
-      amFrequency: currentAmFreq,
-      fmFrequency: currentFmFreq,
-      lfoFrequency: currentLfoFreq,
-      distortedFmIntensity: currentDistortedFmIntensity,
-    } = parametersRef.current;
+    const { waveform: currentWaveform, amFrequency: currentAmFreq, fmFrequency: currentFmFreq, lfoFrequency: currentLfoFreq, distortedFmIntensity: currentDistortedFmIntensity } = parametersRef.current;
 
     // Iterate over all active oscillators and update their properties
     Object.values(activeOscillatorsRef.current).forEach((oscList) => {
@@ -130,21 +122,25 @@ const Synth = ({ onClose, position }) => {
       // Update AM frequency if AM is on
       if (oscList.amMod) {
         oscList.amMod.frequency.setValueAtTime(currentAmFreq, audioCtxRef.current.currentTime);
+        // console.log(`Updated AM frequency to ${currentAmFreq}`);
       }
 
       // Update FM frequency if FM is on
       if (oscList.fmMod) {
         oscList.fmMod.frequency.setValueAtTime(currentFmFreq, audioCtxRef.current.currentTime);
+        // console.log(`Updated FM frequency to ${currentFmFreq}`);
       }
 
       // Update LFO frequency if LFO is on
       if (oscList.lfo) {
         oscList.lfo.frequency.setValueAtTime(currentLfoFreq, audioCtxRef.current.currentTime);
+        // console.log(`Updated LFO frequency to ${currentLfoFreq}`);
       }
 
       // Update distorted FM intensity if applicable
       if (oscList.distortedFmMod && oscList.distortedFmGain) {
         oscList.distortedFmGain.gain.setValueAtTime(100 * currentDistortedFmIntensity, audioCtxRef.current.currentTime);
+        // console.log(`Updated distorted FM intensity to ${currentDistortedFmIntensity}`);
       }
     });
   }, [
@@ -167,7 +163,7 @@ const Synth = ({ onClose, position }) => {
   const createPulseOscillator = (audioCtx, frequency, pulseWidth) => {
     const osc = audioCtx.createOscillator();
     const pulseShaper = audioCtx.createWaveShaper();
-
+    
     const createPulseCurve = (pulseWidth) => {
       const curves = new Float32Array(256);
       for (let i = 0; i < 128; i++) {
@@ -209,7 +205,7 @@ const Synth = ({ onClose, position }) => {
     }, {});
   }, []);
 
-  // Initialize AudioContext, Compressor, and set up global resume logic
+  // Initialize AudioContext and Compressor once
   useEffect(() => {
     // Initialize AudioContext
     audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -230,10 +226,10 @@ const Synth = ({ onClose, position }) => {
     const handleKeyDown = async (event) => {
       const keyCode = event.keyCode.toString();
       const currentParams = parametersRef.current;
-
+    
       if (keyboardFrequencyMap[keyCode] && !activeOscillatorsRef.current[keyCode]) {
         if (currentParams.crazy) {
-          await playCrazy();
+          await playCrazy(); // Make sure playCrazy is also async if necessary
         } else {
           await playNote(
             keyCode,
@@ -258,31 +254,9 @@ const Synth = ({ onClose, position }) => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    // Global AudioContext Resume on First Interaction
-    const resumeAudioContext = async () => {
-      if (audioCtx.state === 'suspended') {
-        try {
-          await audioCtx.resume();
-          console.log('AudioContext resumed from user interaction');
-          // Remove event listeners after resuming
-          window.removeEventListener('touchstart', resumeAudioContext);
-          window.removeEventListener('click', resumeAudioContext);
-        } catch (err) {
-          console.error('Failed to resume AudioContext:', err);
-        }
-      }
-    };
-
-    // Attach event listeners for touchstart and click with { once: true }
-    window.addEventListener('touchstart', resumeAudioContext, { once: true });
-    window.addEventListener('click', resumeAudioContext, { once: true });
-
-    // Clean up event listeners on component unmount
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('touchstart', resumeAudioContext);
-      window.removeEventListener('click', resumeAudioContext);
       audioCtx.close();
     };
   }, [keyboardFrequencyMap]);
@@ -298,7 +272,7 @@ const Synth = ({ onClose, position }) => {
     lfoFreq
   ) => {
     const audioCtx = audioCtxRef.current;
-
+  
     // Resume AudioContext if it's suspended
     if (audioCtx.state === 'suspended') {
       try {
@@ -309,7 +283,7 @@ const Synth = ({ onClose, position }) => {
         return; // Exit if unable to resume
       }
     }
-
+  
     const currentParams = parametersRef.current;
 
     // Initialize structure for the key if not present
@@ -338,11 +312,7 @@ const Synth = ({ onClose, position }) => {
     for (let i = 0; i < numPartials; i++) {
       let osc;
       if (currentParams.waveform === 'pulse') {
-        const { osc: pulseOsc, pulseShaper } = createPulseOscillator(
-          audioCtx,
-          frequency + i * distPartials,
-          currentParams.pulseWidth
-        );
+        const { osc: pulseOsc, pulseShaper } = createPulseOscillator(audioCtx, frequency + i * distPartials, currentParams.pulseWidth);
         osc = pulseOsc;
         osc.pulseShaper = pulseShaper;
       } else {
@@ -350,7 +320,7 @@ const Synth = ({ onClose, position }) => {
         osc.type = currentParams.waveform;
         osc.frequency.setValueAtTime(frequency + i * distPartials, audioCtx.currentTime);
       }
-
+      
       oscillators.push(osc);
       activeOscillatorsRef.current[key].mainOscillators.push(osc);
     }
@@ -416,11 +386,7 @@ const Synth = ({ onClose, position }) => {
     }
 
     // Distorted FM Modulation (Old Implementation)
-    if (
-      fmFreq > 0 &&
-      currentParams.distortedFmIntensity > 0 &&
-      currentParams.fmMode === 'on'
-    ) {
+    if (fmFreq > 0 && currentParams.distortedFmIntensity > 0 && currentParams.fmMode === 'on') {
       const distortedFmMod = audioCtx.createOscillator();
       distortedFmMod.frequency.value = fmFreq;
 
@@ -535,7 +501,7 @@ const Synth = ({ onClose, position }) => {
   };
 
   // Function to play a crazy note
-  const playCrazy = async () => {
+  const playCrazy = () => {
     const audioCtx = audioCtxRef.current;
     const currentParams = parametersRef.current;
     const whiteKeysList = KEYS.filter((key) => key.type === 'white'); // Prefer white keys for crazy mode
@@ -546,7 +512,7 @@ const Synth = ({ onClose, position }) => {
       const virtualKey = `virtual-${selectedKey.note}`;
       if (!activeOscillatorsRef.current[virtualKey]) {
         // Play the selected key with current settings
-        await playNote(
+        playNote(
           virtualKey,
           selectedKey.frequency,
           currentParams.additiveMode === 'on' ? currentParams.numPartials : 1,
@@ -567,7 +533,7 @@ const Synth = ({ onClose, position }) => {
   const handleVirtualKeyDown = async (key) => {
     const currentParams = parametersRef.current;
     if (currentParams.crazy) {
-      await playCrazy();
+      await playCrazy(); // Ensure playCrazy handles async correctly
     } else {
       const virtualKey = `virtual-${key.note}`;
       if (!activeOscillatorsRef.current[virtualKey]) {
@@ -583,7 +549,7 @@ const Synth = ({ onClose, position }) => {
       }
     }
   };
-
+  
   // Function to handle virtual key release
   const handleVirtualKeyUp = (key) => {
     const virtualKey = `virtual-${key.note}`;
@@ -596,7 +562,7 @@ const Synth = ({ onClose, position }) => {
     <Modal
       closeModal={onClose}
       style={{
-        width: showKeyboard && !isTwoRows ? '700px' : '600px',
+        width: (showKeyboard && !isTwoRows) ? '700px' : '600px',
         height: 'auto',
         left: position.x,
         top: position.y,
@@ -659,7 +625,7 @@ const Synth = ({ onClose, position }) => {
           <ToggleButton onClick={() => setShowKeyboard(!showKeyboard)}>
             {showKeyboard ? 'Hide Virtual Keyboard' : 'Show Virtual Keyboard'}
           </ToggleButton>
-
+          
           {showKeyboard && (
             <ToggleButton onClick={() => setIsTwoRows(!isTwoRows)}>
               {isTwoRows ? 'Make One Row' : 'Make Two Rows'}

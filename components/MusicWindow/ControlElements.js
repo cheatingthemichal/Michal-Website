@@ -141,11 +141,6 @@ const ControlElements = ({
     setIsPlaying(!isPlaying);
   };
 
-  const isPlaybackRateSupported = () => {
-    const audio = document.createElement('audio');
-    return 'playbackRate' in audio;
-  };
-
   const handleSeekChange = useCallback((e) => {
     const value = parseInt(e.target.value, 10);
     setSeekValue(value);
@@ -208,7 +203,6 @@ const ControlElements = ({
           </ControlRow>
           <ControlRow>
             <Time variant="16x16_4" />
-            {isPlaybackRateSupported &&
             <Range
               id="speed"
               min={0.1}
@@ -217,7 +211,6 @@ const ControlElements = ({
               value={speedValue}
               onChange={handleSpeedSliderChange}
             />
-            }
             <Mspaint variant="16x16_4" />
             <Range
               id="color"

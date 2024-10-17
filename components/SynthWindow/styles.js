@@ -66,12 +66,12 @@ export const VirtualKeyboardContainer = styled.div`
   overflow-x: auto;
 
   &::-webkit-scrollbar {
-    height: 16px;
+    height: 24px;
   }
 
   &::-webkit-scrollbar-thumb {
     background-color: #888;
-    border-radius: 8px;
+    border-radius: 12px;
   }
 
   &::-webkit-scrollbar-track {

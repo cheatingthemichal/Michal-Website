@@ -8,16 +8,22 @@ import VirtualKeyboard from './VirtualKeyboard';
 import { Instructions, Container } from './styles';
 import { px } from '@xstyled/styled-components';
 import { useSharedAudioContext } from '../../context/AudioContextProvider';
+import { FaArrowDown, FaArrowUp } from 'react-icons/fa'; // Import icons
 
 const ButtonContainer = styled.div`
   display: flex;
   gap: 10px;
   margin-top: 10px;
   align-self: center;
+  justify-content: center; /* Center the buttons */
 `;
 
 const ToggleButton = styled(Button)`
   align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
 `;
 
 // Define the list of keys outside the component to prevent re-creation
@@ -67,6 +73,9 @@ const Synth = ({ onClose, position }) => {
   const [isTwoRows, setIsTwoRows] = useState(false);
   const [distortedFmIntensity, setDistortedFmIntensity] = useState(0); // New state for distorted FM intensity
 
+  // New state for octave shifting
+  const [octaveShift, setOctaveShift] = useState(0);
+
   // Refs for active oscillators/gains
   const activeOscillatorsRef = useRef({});
   const activeGainsRef = useRef({});
@@ -90,6 +99,7 @@ const Synth = ({ onClose, position }) => {
     lfoFrequency,
     crazy,
     distortedFmIntensity,
+    octaveShift, // Include octaveShift
   });
 
   // Update parametersRef whenever state changes
@@ -108,10 +118,18 @@ const Synth = ({ onClose, position }) => {
       lfoFrequency,
       crazy,
       distortedFmIntensity,
+      octaveShift, // Update octaveShift
     };
 
     // Destructure current parameters for ease of use
-    const { waveform: currentWaveform, amFrequency: currentAmFreq, fmFrequency: currentFmFreq, lfoFrequency: currentLfoFreq, distortedFmIntensity: currentDistortedFmIntensity } = parametersRef.current;
+    const {
+      waveform: currentWaveform,
+      amFrequency: currentAmFreq,
+      fmFrequency: currentFmFreq,
+      lfoFrequency: currentLfoFreq,
+      distortedFmIntensity: currentDistortedFmIntensity,
+      pulseWidth: currentPulseWidth,
+    } = parametersRef.current;
 
     // Iterate over all active oscillators and update their properties
     Object.values(activeOscillatorsRef.current).forEach((oscList) => {
@@ -120,7 +138,7 @@ const Synth = ({ onClose, position }) => {
         if (currentWaveform !== 'pulse') {
           osc.type = currentWaveform;
         } else {
-          updatePulseWave(osc, pulseWidth);
+          updatePulseWave(osc, currentPulseWidth);
         }
       });
 
@@ -162,8 +180,26 @@ const Synth = ({ onClose, position }) => {
     lfoFrequency,
     crazy,
     distortedFmIntensity,
+    octaveShift, // Include octaveShift in dependencies
     audioContext,
   ]);
+
+  // Define shifted keys based on octaveShift
+  const shiftedKeys = useMemo(() => {
+    const factor = Math.pow(2, octaveShift);
+    return KEYS.map((key) => ({
+      ...key,
+      frequency: key.frequency * factor,
+    }));
+  }, [octaveShift]);
+
+  // Update keyboardFrequencyMap to use shiftedKeys
+  const keyboardFrequencyMap = useMemo(() => {
+    return shiftedKeys.reduce((acc, key) => {
+      acc[key.keyCode] = key.frequency;
+      return acc;
+    }, {});
+  }, [shiftedKeys]);
 
   // Function to create a pulse wave oscillator
   const createPulseOscillator = (audioCtx, frequency, pulseWidth) => {
@@ -202,14 +238,6 @@ const Synth = ({ onClose, position }) => {
       osc.pulseShaper.curve = curves;
     }
   };
-
-  // Define the frequency map using useMemo
-  const keyboardFrequencyMap = useMemo(() => {
-    return KEYS.reduce((acc, key) => {
-      acc[key.keyCode] = key.frequency;
-      return acc;
-    }, {});
-  }, []);
 
   // Initialize Compressor once
   useEffect(() => {
@@ -306,7 +334,11 @@ const Synth = ({ onClose, position }) => {
     for (let i = 0; i < numPartials; i++) {
       let osc;
       if (currentParams.waveform === 'pulse') {
-        const { osc: pulseOsc, pulseShaper } = createPulseOscillator(audioContext, frequency + i * distPartials, currentParams.pulseWidth);
+        const { osc: pulseOsc, pulseShaper } = createPulseOscillator(
+          audioContext,
+          frequency + i * distPartials,
+          currentParams.pulseWidth
+        );
         osc = pulseOsc;
         osc.pulseShaper = pulseShaper;
       } else {
@@ -314,7 +346,7 @@ const Synth = ({ onClose, position }) => {
         osc.type = currentParams.waveform;
         osc.frequency.setValueAtTime(frequency + i * distPartials, audioContext.currentTime);
       }
-      
+
       oscillators.push(osc);
       activeOscillatorsRef.current[key].mainOscillators.push(osc);
     }
@@ -380,7 +412,11 @@ const Synth = ({ onClose, position }) => {
     }
 
     // Distorted FM Modulation (Old Implementation)
-    if (fmFreq > 0 && currentParams.distortedFmIntensity > 0 && currentParams.fmMode === 'on') {
+    if (
+      fmFreq > 0 &&
+      currentParams.distortedFmIntensity > 0 &&
+      currentParams.fmMode === 'on'
+    ) {
       const distortedFmMod = audioContext.createOscillator();
       distortedFmMod.frequency.value = fmFreq;
 
@@ -554,16 +590,26 @@ const Synth = ({ onClose, position }) => {
     }
   };
 
+  // Function to handle Octave Down
+  const handleOctaveDown = () => {
+    setOctaveShift((prev) => Math.max(prev - 1, -1));
+  };
+
+  // Function to handle Octave Up
+  const handleOctaveUp = () => {
+    setOctaveShift((prev) => Math.min(prev + 1, 1));
+  };
+
   return (
     <Modal
       closeModal={onClose}
       style={{
-        width: (showKeyboard && !isTwoRows) ? '700px' : '600px',
+        width: showKeyboard && !isTwoRows ? '800px' : '700px',
         height: 'auto',
         left: position.x,
         top: position.y,
-        maxWidth: '90%',
-        maxHeight: '90%',
+        maxWidth: '95%',
+        maxHeight: '95%',
         overflow: 'auto',
         zIndex: 1000,
       }}
@@ -616,23 +662,38 @@ const Synth = ({ onClose, position }) => {
           Press keys (Z, S, X, D, C, V, G, B, H, N, J, M, Q, 2, W, 3, E, R, 5, T, 6, Y, 7, U, I) to play notes.
         </Instructions>
 
-        {/* Button Container for Virtual Keyboard and Layout Toggle */}
+        {/* Button Container for Octave and Virtual Keyboard */}
         <ButtonContainer>
+          {/* Octave Down Button */}
+          <ToggleButton
+            onClick={handleOctaveDown}
+            disabled={octaveShift <= -1}
+            title="Shift down by one octave"
+          >
+            <FaArrowDown style={{ marginRight: '5px' }} />
+            Octave Down
+          </ToggleButton>
+
+          {/* Show/Hide Virtual Keyboard Button */}
           <ToggleButton onClick={() => setShowKeyboard(!showKeyboard)}>
             {showKeyboard ? 'Hide Virtual Keyboard' : 'Show Virtual Keyboard'}
           </ToggleButton>
-          
-          {showKeyboard && (
-            <ToggleButton onClick={() => setIsTwoRows(!isTwoRows)}>
-              {isTwoRows ? 'Make One Row' : 'Make Two Rows'}
-            </ToggleButton>
-          )}
+
+          {/* Octave Up Button */}
+          <ToggleButton
+            onClick={handleOctaveUp}
+            disabled={octaveShift >= 1}
+            title="Shift up by one octave"
+          >
+            <FaArrowUp style={{ marginRight: '5px' }} />
+            Octave Up
+          </ToggleButton>
         </ButtonContainer>
 
         {/* Virtual Keyboard */}
         {showKeyboard && (
           <VirtualKeyboard
-            keys={KEYS}
+            keys={shiftedKeys} // Use shiftedKeys here
             handleVirtualKeyDown={handleVirtualKeyDown}
             handleVirtualKeyUp={handleVirtualKeyUp}
             activeOscillators={activeOscillatorsRef.current}

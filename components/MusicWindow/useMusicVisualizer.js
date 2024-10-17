@@ -26,6 +26,15 @@ const useMusicVisualizer = (canvasRef) => {
     }));
   };
 
+  // Handler for volume changes
+  const handleVolumeChange = (value) => {
+    if (audioRef.current) {
+      // Ensure the volume stays within 0 to 2
+      const clampedValue = Math.min(Math.max(value, 0), 1);
+      audioRef.current.volume = clampedValue;
+    }
+  };
+
   const handleAudioSourceChange = (source) => {
     if (audioRef.current && canvasRef.current && sharedAudioContext) {
       if (sharedAudioContext.state === 'suspended') {
@@ -161,6 +170,7 @@ const useMusicVisualizer = (canvasRef) => {
     handleSeek,
     handleSpeedChange,
     handleColorChange,
+    handleVolumeChange, // Expose the volume handler
     stopVisualizer,
     audioRef,
   };

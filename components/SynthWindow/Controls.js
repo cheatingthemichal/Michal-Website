@@ -315,7 +315,7 @@ const Controls = ({
           <Range
             id="volume"
             min={0}
-            max={2}
+            max={4}
             step={0.01}
             value={volume}
             onChange={(e) => setVolume(parseFloat(e.target.value))}

@@ -38,6 +38,8 @@ const Controls = ({
   setCrazy,
   distortedFmIntensity,
   setDistortedFmIntensity,
+  volume, // Receive volume
+  setVolume, // Receive setVolume
 }) => {
   return (
     <Container>
@@ -305,6 +307,21 @@ const Controls = ({
           </RangeContainer>
         </ControlRow>
       )}
+
+      {/* Volume Control */}
+      <ControlRow>
+        <Label>Volume: {(volume * 100).toFixed(0)}%</Label>
+        <RangeContainer>
+          <Range
+            id="volume"
+            min={0}
+            max={2}
+            step={0.01}
+            value={volume}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
+          />
+        </RangeContainer>
+      </ControlRow>
     </Container>
   );
 };

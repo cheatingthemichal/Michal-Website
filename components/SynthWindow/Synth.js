@@ -72,6 +72,7 @@ const Synth = ({ onClose, position }) => {
   const [showKeyboard, setShowKeyboard] = useState(false); // State to toggle keyboard visibility
   const [isTwoRows, setIsTwoRows] = useState(false);
   const [distortedFmIntensity, setDistortedFmIntensity] = useState(0); // New state for distorted FM intensity
+  const [volume, setVolume] = useState(1); // New state for volume (range: 0 to 1)
 
   // New state for octave shifting
   const [octaveShift, setOctaveShift] = useState(0);
@@ -80,6 +81,7 @@ const Synth = ({ onClose, position }) => {
   const activeOscillatorsRef = useRef({});
   const activeGainsRef = useRef({});
   const compressorRef = useRef(null); // We will use shared AudioContext
+  const masterGainRef = useRef(null); // Ref for master gain node
 
   // Get shared AudioContext
   const audioContext = useSharedAudioContext();
@@ -100,6 +102,7 @@ const Synth = ({ onClose, position }) => {
     crazy,
     distortedFmIntensity,
     octaveShift, // Include octaveShift
+    volume, // Include volume
   });
 
   // Update parametersRef whenever state changes
@@ -119,6 +122,7 @@ const Synth = ({ onClose, position }) => {
       crazy,
       distortedFmIntensity,
       octaveShift, // Update octaveShift
+      volume, // Update volume
     };
 
     // Destructure current parameters for ease of use
@@ -129,7 +133,13 @@ const Synth = ({ onClose, position }) => {
       lfoFrequency: currentLfoFreq,
       distortedFmIntensity: currentDistortedFmIntensity,
       pulseWidth: currentPulseWidth,
+      volume: currentVolume,
     } = parametersRef.current;
+
+    // Update master gain volume
+    if (masterGainRef.current) {
+      masterGainRef.current.gain.setValueAtTime(currentVolume, audioContext.currentTime);
+    }
 
     // Iterate over all active oscillators and update their properties
     Object.values(activeOscillatorsRef.current).forEach((oscList) => {
@@ -181,6 +191,7 @@ const Synth = ({ onClose, position }) => {
     crazy,
     distortedFmIntensity,
     octaveShift, // Include octaveShift in dependencies
+    volume, // Include volume in dependencies
     audioContext,
   ]);
 
@@ -239,16 +250,22 @@ const Synth = ({ onClose, position }) => {
     }
   };
 
-  // Initialize Compressor once
+  // Initialize Compressor and Master Gain once
   useEffect(() => {
     if (audioContext && !compressorRef.current) {
-      // Create Compressor and connect to AudioContext destination
+      // Create Master Gain Node
+      const masterGain = audioContext.createGain();
+      masterGain.gain.setValueAtTime(volume, audioContext.currentTime); // Initialize volume
+      masterGain.connect(audioContext.destination);
+      masterGainRef.current = masterGain;
+
+      // Create Compressor and connect to Master Gain
       const compressor = audioContext.createDynamicsCompressor();
       compressor.threshold.setValueAtTime(-50, audioContext.currentTime);
       // You can adjust compressor settings here if needed
-      compressor.connect(audioContext.destination);
+      compressor.connect(masterGain);
       compressorRef.current = compressor;
-      console.log('Compressor initialized and connected to AudioContext');
+      console.log('Compressor and Master Gain initialized and connected to AudioContext');
     }
 
     // Event listeners for keyboard
@@ -364,11 +381,11 @@ const Synth = ({ onClose, position }) => {
       osc.start();
     });
 
-    // Connect Gain Node to Compressor
+    // Connect Gain Node to Compressor (which is already connected to Master Gain)
     if (compressorRef.current) {
       gainNode.connect(compressorRef.current);
-    } else {
-      gainNode.connect(audioContext.destination);
+    } else if (masterGainRef.current) {
+      gainNode.connect(masterGainRef.current);
     }
 
     // Store Gain Node
@@ -604,7 +621,7 @@ const Synth = ({ onClose, position }) => {
     <Modal
       closeModal={onClose}
       style={{
-        width: showKeyboard && !isTwoRows ? '800px' : '700px',
+        width: '700px',
         height: 'auto',
         left: position.x,
         top: position.y,
@@ -655,6 +672,8 @@ const Synth = ({ onClose, position }) => {
           setCrazy={setCrazy}
           distortedFmIntensity={distortedFmIntensity}
           setDistortedFmIntensity={setDistortedFmIntensity}
+          volume={volume}
+          setVolume={setVolume} // Pass volume and setter
         />
 
         {/* Instructions */}
@@ -669,6 +688,7 @@ const Synth = ({ onClose, position }) => {
             onClick={handleOctaveDown}
             disabled={octaveShift <= -1}
             title="Shift down by one octave"
+            aria-label="Shift down by one octave"
           >
             <FaArrowDown style={{ marginRight: '5px' }} />
             Octave Down
@@ -679,11 +699,18 @@ const Synth = ({ onClose, position }) => {
             {showKeyboard ? 'Hide Virtual Keyboard' : 'Show Virtual Keyboard'}
           </ToggleButton>
 
+          {showKeyboard && (
+            <ToggleButton onClick={() => setIsTwoRows(!isTwoRows)}>
+              {isTwoRows ? 'Make One Row' : 'Make Two Rows'}
+            </ToggleButton>
+          )}
+
           {/* Octave Up Button */}
           <ToggleButton
             onClick={handleOctaveUp}
             disabled={octaveShift >= 1}
             title="Shift up by one octave"
+            aria-label="Shift up by one octave"
           >
             <FaArrowUp style={{ marginRight: '5px' }} />
             Octave Up

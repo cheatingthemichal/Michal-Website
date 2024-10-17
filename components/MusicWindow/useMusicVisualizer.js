@@ -29,7 +29,7 @@ const useMusicVisualizer = (canvasRef) => {
   // Handler for volume changes
   const handleVolumeChange = (value) => {
     if (audioRef.current) {
-      // Ensure the volume stays within 0 to 2
+      // Ensure the volume stays within 0 to 1
       const clampedValue = Math.min(Math.max(value, 0), 1);
       audioRef.current.volume = clampedValue;
     }

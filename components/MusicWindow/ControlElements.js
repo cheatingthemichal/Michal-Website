@@ -1,8 +1,9 @@
-// components/MusicWindow/ControlElements.js
+// src/components/MusicWindow/ControlElements.js
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { RadioButton, Button, Range } from '@react95/core';
 import { Mspaint, Time, Sndrec3210 } from '@react95/icons';
 import styled from 'styled-components';
+import useIsMobile from '../../hooks/useIsMobile'; // Adjust the path as necessary
 
 const Container = styled.div`
   display: flex;
@@ -120,7 +121,7 @@ const ControlElements = ({
   handleSeek,
   handleSpeedChange,
   handleColorChange,
-  handleVolumeChange, // Added volume handler
+  handleVolumeChange, // Volume handler
   currentTime,
   duration,
   isPlaying,
@@ -129,7 +130,8 @@ const ControlElements = ({
   const fileInputRef = useRef(null);
   const [seekValue, setSeekValue] = useState(0);
   const [speedValue, setSpeedValue] = useState(1);
-  const [volumeValue, setVolumeValue] = useState(0.5); // Added state for volume
+  const [volumeValue, setVolumeValue] = useState(0.5); // Volume state
+  const isMobile = useIsMobile(768); // Using the custom hook with 768px breakpoint
 
   const handleChooseFileClick = () => {
     fileInputRef.current.click();
@@ -156,27 +158,12 @@ const ControlElements = ({
     handleSpeedChange(value);
   };
 
-  // Added handler for volume slider
+  // Handler for volume slider
   const handleVolumeSliderChange = (e) => {
     const value = parseFloat(e.target.value);
     setVolumeValue(value);
     handleVolumeChange(value);
   };
-
-  useEffect(() => {
-    setIsPlaying(false);
-  }, []);
-
-  useEffect(() => {
-    if (duration) {
-      setSeekValue((currentTime / duration) * 100);
-    }
-  }, [currentTime, duration]);
-
-  useEffect(() => {
-    setSpeedValue(1); // Reset speed value to 1 when a new song is loaded or selected
-    setVolumeValue(0.5); // Reset volume to 0.5 when a new song is loaded or selected
-  }, [fileName]);
 
   return (
     <Container>
@@ -213,15 +200,19 @@ const ControlElements = ({
             />
           </ControlRow>
           <ControlRow>
-            <Time variant="16x16_4" />
-            <Range
-              id="speed"
-              min={0.1}
-              max={2}
-              step={0.1}
-              value={speedValue}
-              onChange={handleSpeedSliderChange}
-            />
+          {!isMobile && (
+            <>
+              <Time variant="16x16_4" />
+                <Range
+                  id="speed"
+                  min={0.1}
+                  max={2}
+                  step={0.1}
+                  value={speedValue}
+                  onChange={handleSpeedSliderChange}
+                />
+              </>
+            )}
             <Mspaint variant="16x16_4" />
             <Range
               id="color"
@@ -240,16 +231,20 @@ const ControlElements = ({
 
       <ControlColumn style={{ marginBottom: '-10px' }}> {/* Adjusted to remove bottom whitespace */}
         <ControlRow>
-          <Sndrec3210 variant="16x16_4"/>
-            <Range
-              id="volume"
-              min={0}
-              max={1}
-              step={0.1}
-              value={volumeValue}
-              onChange={handleVolumeSliderChange}
-              style={{ width: '100px' }} // Adjust width as needed
-            />
+          {!isMobile && (
+            <>
+              <Sndrec3210 variant="16x16_4" />
+              <Range
+                id="volume"
+                min={0}
+                max={1}
+                step={0.1}
+                value={volumeValue}
+                onChange={handleVolumeSliderChange}
+                style={{ width: '100px' }} // Adjust width as needed
+              />
+            </>
+          )}
           <Label>H </Label>
           <Range
             id="norm"

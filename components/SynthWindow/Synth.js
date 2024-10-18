@@ -300,11 +300,33 @@ const Synth = ({ onClose, position }) => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [keyboardFrequencyMap, audioContext]);
+    // Handle touchstart and pointerdown to ensure mobile support
+  const handleTouchStart = async (event) => {
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+    const key = event.target.dataset.note;
+    if (key) handleVirtualKeyDown({ note: key });
+  };
+
+  const handleTouchEnd = (event) => {
+    const key = event.target.dataset.note;
+    if (key) handleVirtualKeyUp({ note: key });
+  };
+
+  // Add event listeners for both desktop and mobile interaction
+  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keyup', handleKeyUp);
+  window.addEventListener('touchstart', handleTouchStart, { passive: true });
+  window.addEventListener('touchend', handleTouchEnd);
+
+  return () => {
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+    window.removeEventListener('touchstart', handleTouchStart);
+    window.removeEventListener('touchend', handleTouchEnd);
+  };
+}, [audioContext]);
 
   // Function to play a note
   const playNote = async (

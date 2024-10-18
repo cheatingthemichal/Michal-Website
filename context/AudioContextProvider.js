@@ -20,7 +20,7 @@ export const AudioContextProvider = ({ children }) => {
     }
   };
 
-  // Add event listeners for user interactions to initialize and resume the AudioContext
+  // Ensure that AudioContext resumes when there's a user interaction
   useEffect(() => {
     const handleUserInteraction = () => {
       initAudioContext();

@@ -9,6 +9,7 @@ import { Instructions, Container } from './styles';
 import { px } from '@xstyled/styled-components';
 import { useSharedAudioContext } from '../../context/AudioContextProvider';
 import { FaArrowDown, FaArrowUp } from 'react-icons/fa'; // Import icons
+import useIsMobile from '../../hooks/useIsMobile';
 
 const ButtonContainer = styled.div`
   display: flex;
@@ -57,6 +58,8 @@ const KEYS = [
 
 const Synth = ({ onClose, position }) => {
   // State variables
+  const isMobile = useIsMobile(); // Use the mobile detection hook
+  const [silentAudio, setSilentAudio] = useState(null);
   const [waveform, setWaveform] = useState('sine');
   const [pulseWidth, setPulseWidth] = useState(0.5);
   const [additiveMode, setAdditiveMode] = useState('off');
@@ -104,6 +107,31 @@ const Synth = ({ onClose, position }) => {
     octaveShift, // Include octaveShift
     volume, // Include volume
   });
+
+  useEffect(() => {
+    if (isMobile && audioContext) {
+      // Create a silent oscillator to keep the AudioContext active
+      const oscillator = audioContext.createOscillator(); // Create an oscillator node
+      const gainNode = audioContext.createGain(); // Create a gain node
+      gainNode.gain.value = 0; // Set the gain to 0 to make it silent
+
+      // Connect the oscillator to the gain node, and then to the destination (speakers)
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      // Start the oscillator
+      oscillator.start();
+      setSilentAudio({ oscillator, gainNode }); // Save references for cleanup
+
+      // Clean up the oscillator and gain node when the component unmounts
+      return () => {
+        oscillator.stop();
+        oscillator.disconnect();
+        gainNode.disconnect();
+        setSilentAudio(null);
+      };
+    }
+  }, [isMobile, audioContext]);
 
   // Update parametersRef whenever state changes
   useEffect(() => {

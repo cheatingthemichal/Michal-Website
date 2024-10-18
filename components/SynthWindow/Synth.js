@@ -110,24 +110,22 @@ const Synth = ({ onClose, position }) => {
 
   useEffect(() => {
     if (isMobile && audioContext) {
-      // Create a silent oscillator to keep the AudioContext active
-      const oscillator = audioContext.createOscillator(); // Create an oscillator node
-      const gainNode = audioContext.createGain(); // Create a gain node
-      gainNode.gain.value = 0; // Set the gain to 0 to make it silent
+      // Play a silent audio file on mobile to keep the AudioContext alive
+      const silentAudioElement = new Audio('/silence.mp3'); // Ensure this file exists in the public folder
+      silentAudioElement.loop = true; // Set the audio to loop indefinitely
+      silentAudioElement.volume = 0; // Set volume to 0 to make it silent
 
-      // Connect the oscillator to the gain node, and then to the destination (speakers)
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      // Play the silent audio to ensure the AudioContext stays active
+      silentAudioElement.play().catch((e) => {
+        console.log('Error playing silent audio:', e);
+      });
 
-      // Start the oscillator
-      oscillator.start();
-      setSilentAudio({ oscillator, gainNode }); // Save references for cleanup
+      setSilentAudio(silentAudioElement); // Store the reference for cleanup
 
-      // Clean up the oscillator and gain node when the component unmounts
       return () => {
-        oscillator.stop();
-        oscillator.disconnect();
-        gainNode.disconnect();
+        // Clean up the silent audio when the component is unmounted
+        silentAudioElement.pause();
+        silentAudioElement.remove(); // Remove the audio element
         setSilentAudio(null);
       };
     }

@@ -579,7 +579,10 @@ const Synth = ({ onClose, position }) => {
     }
   };
 
-  const handleVirtualKeyDown = (key) => {
+  const handleVirtualKeyDown = async (key) => {
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
     const currentParams = parametersRef.current;
     if (currentParams.crazy) {
       playCrazy();

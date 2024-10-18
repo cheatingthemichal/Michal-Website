@@ -38,12 +38,12 @@ const useMusicVisualizer = (canvasRef) => {
   const handleAudioSourceChange = (source) => {
     if (audioRef.current && canvasRef.current && sharedAudioContext) {
       if (sharedAudioContext.state === 'suspended') {
-        sharedAudioContext.resume();
+        sharedAudioContext.resume(); // Ensure AudioContext is resumed
       }
       audioRef.current.src = source;
       audioRef.current.load();
       audioRef.current.play();
-
+      
       if (!visualizer) {
         const newVisualizer = new Visualizer(
           sharedAudioContext, // Use shared AudioContext
@@ -70,7 +70,7 @@ const useMusicVisualizer = (canvasRef) => {
       }
     }
   };
-
+  
   const handleFileChange = (event) => {
     const files = event.target.files;
     if (files.length > 0) {

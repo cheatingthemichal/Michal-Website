@@ -14,7 +14,7 @@ const getModalPosition = (modalType, width, height) => {
     },
     Synth: {
       x: width - modalWidth - 300, // Fixed to the right
-      y: 100,
+      y: 70,
     },
     Map: {
       x: 50,

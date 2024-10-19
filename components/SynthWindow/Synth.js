@@ -353,7 +353,7 @@ const Synth = ({ onClose, position }) => {
     window.removeEventListener('touchend', handleTouchEnd);
   };
 }, [audioContext]);
-
+//
   // Function to play a note
   const playNote = async (
     key,

@@ -88,6 +88,7 @@ const Synth = ({ onClose, position }) => {
 
   // Get shared AudioContext
   const audioContext = useSharedAudioContext();
+  const [silentOscillator, setSilentOscillator] = useState(null);
 
   // Ref to store current parameters
   const parametersRef = useRef({
@@ -108,28 +109,28 @@ const Synth = ({ onClose, position }) => {
     volume, // Include volume
   });
 
-  useEffect(() => {
-    if (isMobile && audioContext) {
-      // Play a silent audio file on mobile to keep the AudioContext alive
-      const silentAudioElement = new Audio('/silence.mp3'); // Ensure this file exists in the public folder
-      silentAudioElement.loop = true; // Set the audio to loop indefinitely
-      silentAudioElement.volume = 0; // Set volume to 0 to make it silent
+  // Inside your Synth component
+useEffect(() => {
+  if (isMobile && audioContext) {
+    // Create a silent oscillator
+    const silentOscillator = audioContext.createOscillator();
+    const silentGain = audioContext.createGain();
+    silentGain.gain.value = 0; // Ensure it's silent
 
-      // Play the silent audio to ensure the AudioContext stays active
-      silentAudioElement.play().catch((e) => {
-        console.log('Error playing silent audio:', e);
-      });
+    silentOscillator.connect(silentGain);
+    silentGain.connect(compressorRef.current || masterGainRef.current || audioContext.destination);
+    silentOscillator.start();
 
-      setSilentAudio(silentAudioElement); // Store the reference for cleanup
+    setSilentAudio(silentOscillator); // Store the reference for cleanup
 
-      return () => {
-        // Clean up the silent audio when the component is unmounted
-        silentAudioElement.pause();
-        silentAudioElement.remove(); // Remove the audio element
-        setSilentAudio(null);
-      };
-    }
-  }, [isMobile, audioContext]);
+    return () => {
+      // Clean up the silent oscillator when the component is unmounted
+      silentOscillator.stop();
+      silentOscillator.disconnect();
+      setSilentAudio(null);
+    };
+  }
+}, [isMobile, audioContext]);
 
   // Update parametersRef whenever state changes
   useEffect(() => {

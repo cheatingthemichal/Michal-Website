@@ -20,28 +20,31 @@ export const AudioContextProvider = ({ children }) => {
     }
   };
 
-  // Ensure that AudioContext resumes when there's a user interaction
-  useEffect(() => {
-    const handleUserInteraction = () => {
-      initAudioContext();
-      window.removeEventListener('pointerdown', handleUserInteraction);
-      window.removeEventListener('keydown', handleUserInteraction);
-      window.removeEventListener('touchstart', handleUserInteraction); // Ensure touchstart is handled
-      window.removeEventListener('touchend', handleUserInteraction);   // Ensure touchend is handled
-    };
-
-    window.addEventListener('pointerdown', handleUserInteraction, { once: true });
-    window.addEventListener('keydown', handleUserInteraction, { once: true });
-    window.addEventListener('touchstart', handleUserInteraction, { once: true });
-    window.addEventListener('touchend', handleUserInteraction, { once: true });
-
-    return () => {
+  // In AudioContextProvider.js
+useEffect(() => {
+  const handleUserInteraction = () => {
+    initAudioContext();
+    // Remove the event listeners only if AudioContext is running
+    if (audioContext && audioContext.state === 'running') {
       window.removeEventListener('pointerdown', handleUserInteraction);
       window.removeEventListener('keydown', handleUserInteraction);
       window.removeEventListener('touchstart', handleUserInteraction);
       window.removeEventListener('touchend', handleUserInteraction);
-    };
-  }, [audioContext]);
+    }
+  };
+
+  window.addEventListener('pointerdown', handleUserInteraction);
+  window.addEventListener('keydown', handleUserInteraction);
+  window.addEventListener('touchstart', handleUserInteraction);
+  window.addEventListener('touchend', handleUserInteraction);
+
+  return () => {
+    window.removeEventListener('pointerdown', handleUserInteraction);
+    window.removeEventListener('keydown', handleUserInteraction);
+    window.removeEventListener('touchstart', handleUserInteraction);
+    window.removeEventListener('touchend', handleUserInteraction);
+  };
+}, [audioContext]);
 
   return (
     <AudioContextContext.Provider value={audioContext}>

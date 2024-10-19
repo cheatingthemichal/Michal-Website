@@ -110,6 +110,9 @@ const Synth = ({ onClose, position }) => {
 
   useEffect(() => {
     if (isMobile && audioContext) {
+      if (audioContext.state === 'suspended') {
+        audioContext.resume(); // Ensure AudioContext is resumed
+      }
       // Play a silent audio file on mobile to keep the AudioContext alive
       const silentAudioElement = new Audio('/silence.mp3'); // Ensure this file exists in the public folder
       silentAudioElement.loop = true; // Set the audio to loop indefinitely

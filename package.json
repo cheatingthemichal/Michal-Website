@@ -9,7 +9,6 @@
     "export": "next export",
     "deploy": "gh-pages -d out",
     "postbuild": "next-sitemap"
-}
   },
   "dependencies": {
     "@react95/core": "^6.2.0",

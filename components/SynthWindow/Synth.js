@@ -112,7 +112,7 @@ const Synth = ({ onClose, position }) => {
     if (isMobile && audioContext) {
       // Play a silent audio file on mobile to keep the AudioContext alive
       const silentAudioElement = new Audio('/silence.mp3'); // Ensure this file exists in the public folder
-      silentAudioElement.loop = true; // Set the audio to loop indefinitely
+      silentAudioElement.loop = false; // Set the audio to loop indefinitely
       silentAudioElement.volume = 0; // Set volume to 0 to make it silent
 
       // Play the silent audio to ensure the AudioContext stays active

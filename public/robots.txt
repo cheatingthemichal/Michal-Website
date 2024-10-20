@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://michalh.vercel.app
+
+# Sitemaps
+Sitemap: https://michalh.vercel.app/sitemap.xml

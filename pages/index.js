@@ -164,10 +164,10 @@ const Home = () => {
     <Container>
       <Head>
         <title>Michal Hajlasz - Personal Website</title>
-        <meta name="description" content="Portfolio website of Michal Hajlasz showcasing projects and experiments with React95 and Next.js" />
-        <meta name="keywords" content="Michal Hajlasz, software developer, portfolio, projects, React, Next.js" />
+        <meta name="description" content="Michał Hajłasz - Portfolio website of Michal Hajlasz showcasing projects and experiments with React95 and Next.js" />
+        <meta name="keywords" content="Michał Hajłasz, Michal Hajlasz, software developer, portfolio, projects, React, Next.js" />
         <meta name="author" content="Michal Hajlasz" />
-        <meta property="og:title" content="Michal Hajlasz - Portfolio" />
+        <meta property="og:title" content="Michal Hajlasz, Michał Hajłasz - Portfolio" />
         <meta property="og:description" content="Check out Michal Hajlasz's projects and work in software development, music visualizers, and more!" />
         <meta property="og:url" content="https://michalh.vercel.app/" />
         <link rel="icon" href="/eye.png" />

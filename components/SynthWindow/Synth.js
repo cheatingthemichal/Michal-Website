@@ -9,6 +9,7 @@ import { Instructions, Container } from './styles';
 import { useSharedAudioContext } from '../../context/AudioContextProvider';
 import { FaArrowDown, FaArrowUp } from 'react-icons/fa'; 
 import useIsMobile from '../../hooks/useIsMobile';
+import { createLowPassFilter, createHighPassFilter, createBandPassFilter } from './filters';
 
 const ButtonContainer = styled.div`
   display: flex;
@@ -54,11 +55,12 @@ const KEYS = [
   { note: 'C6', frequency: 1046.5, type: 'white', keyCode: '73' }, // I
 ];
 
-const maxPartials = 50; 
+const MAX_VOICES = 20; 
 
 const Synth = ({ onClose, position }) => {
   const isMobile = useIsMobile();
   const [silentAudio, setSilentAudio] = useState(null);
+
   const [waveform, setWaveform] = useState('sine');
   const [pulseWidth, setPulseWidth] = useState(0.5);
   const [additiveMode, setAdditiveMode] = useState('off');
@@ -77,14 +79,26 @@ const Synth = ({ onClose, position }) => {
   const [volume, setVolume] = useState(1);
   const [octaveShift, setOctaveShift] = useState(0);
 
-  // New state for tracking currently focused slider
-  // Assume sliderName is a string that identifies which slider is focused
-  const [focusedSlider, setFocusedSlider] = useState(null);
+  const [lpFrequency, setLpFrequency] = useState(1000);
+  const [hpFrequency, setHpFrequency] = useState(500);
+  const [bpFrequency, setBpFrequency] = useState(1000);
+  const [bpQ, setBpQ] = useState(1);
 
-  const activeOscillatorsRef = useRef({});
-  const activeGainsRef = useRef({});
+  const [focusedSlider, setFocusedSlider] = useState(null);
+  const [filtersEnabled, setFiltersEnabled] = useState(true);
+
+  // Keep track of currently pressed keys to prevent multiple voices for same key
+  const keysDownRef = useRef(new Set());
+  const activeVoicesRef = useRef([]);
+  const voiceIdCounterRef = useRef(0);
+
   const compressorRef = useRef(null);
   const masterGainRef = useRef(null);
+  const notesBusRef = useRef(null);
+
+  const lowPassRef = useRef(null);
+  const highPassRef = useRef(null);
+  const bandPassRef = useRef(null);
 
   const audioContext = useSharedAudioContext();
 
@@ -104,6 +118,10 @@ const Synth = ({ onClose, position }) => {
     distortedFmIntensity,
     octaveShift,
     volume,
+    lpFrequency,
+    hpFrequency,
+    bpFrequency,
+    bpQ
   });
 
   useEffect(() => {
@@ -128,6 +146,75 @@ const Synth = ({ onClose, position }) => {
     }
   }, [isMobile, audioContext]);
 
+  // Initialize audio chain once
+  useEffect(() => {
+    if (audioContext && !masterGainRef.current) {
+      const masterGain = audioContext.createGain();
+      masterGain.gain.setValueAtTime(volume, audioContext.currentTime);
+
+      const compressor = audioContext.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-50, audioContext.currentTime);
+
+      const lowPass = createLowPassFilter(audioContext, lpFrequency);
+      const highPass = createHighPassFilter(audioContext, hpFrequency);
+      const bandPass = createBandPassFilter(audioContext, bpFrequency, bpQ);
+
+      const notesBus = audioContext.createGain();
+      notesBus.gain.setValueAtTime(1, audioContext.currentTime);
+
+      // Initial chain (will adjust when filtersEnabled changes)
+      notesBus.connect(lowPass).connect(highPass).connect(bandPass).connect(compressor).connect(masterGain).connect(audioContext.destination);
+
+      notesBusRef.current = notesBus;
+      lowPassRef.current = lowPass;
+      highPassRef.current = highPass;
+      bandPassRef.current = bandPass;
+      compressorRef.current = compressor;
+      masterGainRef.current = masterGain;
+
+      const handleKeyDown = (event) => {
+        const currentParams = parametersRef.current;
+        const keyCode = event.keyCode.toString();
+
+        // If slider focused and arrow keys:
+        if (focusedSlider && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+          event.preventDefault();
+          const increment = event.key === 'ArrowUp' ? 1 : -1;
+          handleArrowKeyForSlider(focusedSlider, increment);
+          return;
+        }
+
+        // Normal note logic
+        if (keyboardFrequencyMap[keyCode]) {
+          // Pressing a physical key
+          if (!keysDownRef.current.has(keyCode)) {
+            keysDownRef.current.add(keyCode);
+            triggerNote(keyCode, keyboardFrequencyMap[keyCode], currentParams);
+          }
+        }
+      };
+
+      const handleKeyUp = (event) => {
+        const keyCode = event.keyCode.toString();
+        if (keyboardFrequencyMap[keyCode]) {
+          if (keysDownRef.current.has(keyCode)) {
+            keysDownRef.current.delete(keyCode);
+            releaseNote(keyCode);
+          }
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('keyup', handleKeyUp);
+
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('keyup', handleKeyUp);
+      };
+    }
+  }, [audioContext]);
+
+  // Update parametersRef on param change
   useEffect(() => {
     parametersRef.current = {
       waveform,
@@ -145,92 +232,29 @@ const Synth = ({ onClose, position }) => {
       distortedFmIntensity,
       octaveShift,
       volume,
+      lpFrequency,
+      hpFrequency,
+      bpFrequency,
+      bpQ
     };
 
-    const {
-      waveform: currentWaveform,
-      pulseWidth: currentPulseWidth,
-      additiveMode: currentAddMode,
-      numPartials: currentNumPartials,
-      distPartials: currentDistPartials,
-      amMode: currentAmMode,
-      amFrequency: currentAmFreq,
-      fmMode: currentFmMode,
-      fmFrequency: currentFmFreq,
-      lfoMode: currentLfoMode,
-      lfoFrequency: currentLfoFreq,
-      distortedFmIntensity: currentDistortedFmIntensity,
-      volume: currentVolume,
-    } = parametersRef.current;
-
-    if (masterGainRef.current) {
-      masterGainRef.current.gain.setValueAtTime(currentVolume, audioContext.currentTime);
+    if (masterGainRef.current && audioContext) {
+      masterGainRef.current.gain.setValueAtTime(volume, audioContext.currentTime);
     }
 
-    // Smooth updates to currently playing notes...
-    Object.keys(activeOscillatorsRef.current).forEach((key) => {
-      const oscData = activeOscillatorsRef.current[key];
-      const gainData = activeGainsRef.current[key];
-      const { baseFrequency, partialOscillators, partialGains } = oscData;
+    if (lowPassRef.current && audioContext) {
+      lowPassRef.current.frequency.setValueAtTime(lpFrequency, audioContext.currentTime);
+    }
+    if (highPassRef.current && audioContext) {
+      highPassRef.current.frequency.setValueAtTime(hpFrequency, audioContext.currentTime);
+    }
+    if (bandPassRef.current && audioContext) {
+      bandPassRef.current.frequency.setValueAtTime(bpFrequency, audioContext.currentTime);
+      bandPassRef.current.Q.setValueAtTime(bpQ, audioContext.currentTime);
+    }
 
-      // Update partial frequencies
-      partialOscillators.forEach((osc, i) => {
-        const targetFreq = baseFrequency + i * (currentAddMode === 'on' ? currentDistPartials : 0);
-        osc.frequency.cancelScheduledValues(audioContext.currentTime);
-        osc.frequency.setValueAtTime(osc.frequency.value, audioContext.currentTime);
-        osc.frequency.linearRampToValueAtTime(targetFreq, audioContext.currentTime + 0.1);
-
-        if (currentWaveform === 'pulse') {
-          updatePulseWave(osc, currentPulseWidth);
-        } else {
-          osc.type = currentWaveform;
-        }
-      });
-
-      // Update number of partials smoothly
-      const effectiveNumPartials = (currentAddMode === 'on') ? currentNumPartials : 1;
-      partialGains.forEach((pGain, i) => {
-        const targetGain = i < effectiveNumPartials ? 1 : 0;
-        pGain.gain.cancelScheduledValues(audioContext.currentTime);
-        pGain.gain.setValueAtTime(pGain.gain.value, audioContext.currentTime);
-        pGain.gain.linearRampToValueAtTime(targetGain, audioContext.currentTime + 0.1);
-      });
-
-      // AM
-      if (oscData.amMod && gainData.amGain) {
-        oscData.amMod.frequency.setValueAtTime(currentAmFreq, audioContext.currentTime);
-        const amTargetGain = currentAmMode === 'on' ? 0.5 : 0;
-        gainData.amGain.gain.cancelScheduledValues(audioContext.currentTime);
-        gainData.amGain.gain.setValueAtTime(gainData.amGain.gain.value, audioContext.currentTime);
-        gainData.amGain.gain.linearRampToValueAtTime(amTargetGain, audioContext.currentTime + 0.1);
-      }
-
-      // FM
-      if (oscData.fmMod && gainData.fmGain) {
-        oscData.fmMod.frequency.setValueAtTime(currentFmFreq, audioContext.currentTime);
-        const fmTargetGain = currentFmMode === 'on' ? 100 : 0;
-        gainData.fmGain.gain.cancelScheduledValues(audioContext.currentTime);
-        gainData.fmGain.gain.setValueAtTime(gainData.fmGain.gain.value, audioContext.currentTime);
-        gainData.fmGain.gain.linearRampToValueAtTime(fmTargetGain, audioContext.currentTime + 0.1);
-      }
-
-      // Distorted FM
-      if (oscData.distortedFmMod && gainData.distortedFmGain) {
-        oscData.distortedFmMod.frequency.setValueAtTime(currentFmFreq, audioContext.currentTime);
-        const distortedFmTargetGain = currentFmMode === 'on' ? (100 * currentDistortedFmIntensity) : 0;
-        gainData.distortedFmGain.gain.cancelScheduledValues(audioContext.currentTime);
-        gainData.distortedFmGain.gain.setValueAtTime(gainData.distortedFmGain.gain.value, audioContext.currentTime);
-        gainData.distortedFmGain.gain.linearRampToValueAtTime(distortedFmTargetGain, audioContext.currentTime + 0.1);
-      }
-
-      // LFO
-      if (oscData.lfo && gainData.lfoGain) {
-        oscData.lfo.frequency.setValueAtTime(currentLfoFreq, audioContext.currentTime);
-        const lfoTargetGain = currentLfoMode === 'on' ? 0.5 : 0;
-        gainData.lfoGain.gain.cancelScheduledValues(audioContext.currentTime);
-        gainData.lfoGain.gain.setValueAtTime(gainData.lfoGain.gain.value, audioContext.currentTime);
-        gainData.lfoGain.gain.linearRampToValueAtTime(lfoTargetGain, audioContext.currentTime + 0.1);
-      }
+    activeVoicesRef.current.forEach((voice) => {
+      updateVoiceParams(voice, parametersRef.current);
     });
   }, [
     waveform,
@@ -248,8 +272,40 @@ const Synth = ({ onClose, position }) => {
     distortedFmIntensity,
     octaveShift,
     volume,
+    lpFrequency,
+    hpFrequency,
+    bpFrequency,
+    bpQ,
     audioContext,
   ]);
+
+  // Connect or disconnect filters based on filtersEnabled
+  useEffect(() => {
+    if (!audioContext || !notesBusRef.current || !compressorRef.current || !masterGainRef.current) return;
+
+    // Disconnect everything first
+    try { notesBusRef.current.disconnect(); } catch(e){}
+    try { lowPassRef.current.disconnect(); } catch(e){}
+    try { highPassRef.current.disconnect(); } catch(e){}
+    try { bandPassRef.current.disconnect(); } catch(e){}
+    try { compressorRef.current.disconnect(); } catch(e){}
+    try { masterGainRef.current.disconnect(); } catch(e){}
+
+    if (filtersEnabled) {
+      // notesBus -> lowPass -> highPass -> bandPass -> compressor -> masterGain -> destination
+      notesBusRef.current.connect(lowPassRef.current)
+        .connect(highPassRef.current)
+        .connect(bandPassRef.current)
+        .connect(compressorRef.current)
+        .connect(masterGainRef.current)
+        .connect(audioContext.destination);
+    } else {
+      // Bypass filters: notesBus -> compressor -> masterGain -> destination
+      notesBusRef.current.connect(compressorRef.current)
+        .connect(masterGainRef.current)
+        .connect(audioContext.destination);
+    }
+  }, [filtersEnabled, audioContext]);
 
   const shiftedKeys = useMemo(() => {
     const factor = Math.pow(2, octaveShift);
@@ -266,162 +322,105 @@ const Synth = ({ onClose, position }) => {
     }, {});
   }, [shiftedKeys]);
 
-  const createPulseOscillator = (audioCtx, frequency, pulseWidth) => {
+  const handleArrowKeyForSlider = (sliderName, increment) => {
+    switch (sliderName) {
+      case 'numPartials':
+        setNumPartials((prev) => Math.max(1, prev + increment));
+        break;
+      case 'distPartials':
+        setDistPartials((prev) => Math.max(0, prev + increment));
+        break;
+      case 'amFrequency':
+        setAmFrequency((prev) => Math.max(0, prev + increment));
+        break;
+      case 'fmFrequency':
+        setFmFrequency((prev) => Math.max(0, prev + increment));
+        break;
+      case 'lfoFrequency':
+        setLfoFrequency((prev) => Math.max(0, prev + increment));
+        break;
+      case 'distortedFmIntensity':
+        setDistortedFmIntensity((prev) => Math.max(0, prev + increment));
+        break;
+      case 'volume':
+        setVolume((prev) => Math.min(1, Math.max(0, prev + increment * 0.01)));
+        break;
+      case 'lpFrequency':
+        setLpFrequency((prev) => Math.max(20, Math.min(20000, prev + increment * 10)));
+        break;
+      case 'hpFrequency':
+        setHpFrequency((prev) => Math.max(20, Math.min(20000, prev + increment * 10)));
+        break;
+      case 'bpFrequency':
+        setBpFrequency((prev) => Math.max(20, Math.min(20000, prev + increment * 10)));
+        break;
+      case 'bpQ':
+        setBpQ((prev) => Math.max(0.1, Math.min(100, prev + increment * 0.1)));
+        break;
+      default:
+        break;
+    }
+  };
+
+  const createPulseOscillator = (audioCtx, frequency, pw) => {
     const osc = audioCtx.createOscillator();
     const pulseShaper = audioCtx.createWaveShaper();
-
-    const createPulseCurve = (pw) => {
+    const createPulseCurve = (width) => {
       const curves = new Float32Array(256);
-      for (let i = 0; i < 128; i++) {
-        curves[i] = i < 128 * pw ? -1 : 1;
-      }
-      for (let i = 128; i < 256; i++) {
-        curves[i] = i < 128 + 128 * pw ? 1 : -1;
+      for (let i = 0; i < 256; i++) {
+        curves[i] = i < 256 * width ? -1 : 1;
       }
       return curves;
     };
-
-    pulseShaper.curve = createPulseCurve(pulseWidth);
+    pulseShaper.curve = createPulseCurve(pw);
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
     osc.connect(pulseShaper);
-
     return { osc, pulseShaper };
   };
 
   const updatePulseWave = (osc, pulseWidth) => {
-    if (osc.pulseShaper) {
-      const curves = new Float32Array(256);
-      for (let i = 0; i < 128; i++) {
-        curves[i] = i < 128 * pulseWidth ? -1 : 1;
-      }
-      for (let i = 128; i < 256; i++) {
-        curves[i] = i < 128 + 128 * pulseWidth ? 1 : -1;
-      }
-      osc.pulseShaper.curve = curves;
+    if (!osc.pulseShaper) return;
+    const curves = new Float32Array(256);
+    for (let i = 0; i < 256; i++) {
+      curves[i] = i < 256 * pulseWidth ? -1 : 1;
     }
+    osc.pulseShaper.curve = curves;
   };
 
-  useEffect(() => {
-    if (audioContext && !compressorRef.current) {
-      const masterGain = audioContext.createGain();
-      masterGain.gain.setValueAtTime(volume, audioContext.currentTime);
-      masterGain.connect(audioContext.destination);
-      masterGainRef.current = masterGain;
+  const triggerNote = (id, frequency, currentParams) => {
+    if (!audioContext || audioContext.state === 'suspended') return;
 
-      const compressor = audioContext.createDynamicsCompressor();
-      compressor.threshold.setValueAtTime(-50, audioContext.currentTime);
-      compressor.connect(masterGain);
-      compressorRef.current = compressor;
-      console.log('Compressor and Master Gain initialized');
-
-      const handleKeyDown = (event) => {
-        const currentParams = parametersRef.current;
-        const keyCode = event.keyCode.toString();
-
-        // If a slider is focused and arrow keys are pressed:
-        if (focusedSlider && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
-          event.preventDefault();
-          // Increment or decrement the slider value by 1
-          // We'll handle logic depending on which slider is focused
-          // Example logic: if focusedSlider === 'numPartials', adjust numPartials
-          const increment = (event.key === 'ArrowUp') ? 1 : -1;
-
-          // Update the appropriate parameter
-          switch (focusedSlider) {
-            case 'numPartials':
-              setNumPartials((prev) => Math.max(1, prev + increment));
-              break;
-            case 'distPartials':
-              setDistPartials((prev) => Math.max(0, prev + increment));
-              break;
-            case 'amFrequency':
-              setAmFrequency((prev) => Math.max(0, prev + increment));
-              break;
-            case 'fmFrequency':
-              setFmFrequency((prev) => Math.max(0, prev + increment));
-              break;
-            case 'lfoFrequency':
-              setLfoFrequency((prev) => Math.max(0, prev + increment));
-              break;
-            case 'distortedFmIntensity':
-              setDistortedFmIntensity((prev) => Math.max(0, prev + increment));
-              break;
-            case 'volume':
-              // volume 0 to 1 range, increment by 0.01 or 1? 
-              // If you want whole increments, maybe clamp at 0 to 1?
-              // Let's assume increment by 0.01 for fine control:
-              setVolume((prev) => Math.min(1, Math.max(0, prev + increment * 0.01)));
-              break;
-            // Add other sliders as needed
-            default:
-              break;
-          }
-          return; // Prevent also triggering note logic
-        }
-
-        // Keyboard note logic
-        if (keyboardFrequencyMap[keyCode] && !activeOscillatorsRef.current[keyCode]) {
-          if (currentParams.crazy) {
-            playCrazy();
-          } else {
-            playNote(
-              keyCode,
-              keyboardFrequencyMap[keyCode],
-              currentParams
-            );
-          }
-        }
-      };
-
-      const handleKeyUp = (event) => {
-        const keyCode = event.keyCode.toString();
-        if (keyboardFrequencyMap[keyCode] && activeOscillatorsRef.current[keyCode]) {
-          stopNote(keyCode);
-        }
-      };
-
-      const handleTouchStart = async (event) => {
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
-        const key = event.target.dataset.note;
-        if (key) handleVirtualKeyDown({ note: key });
-      };
-
-      const handleTouchEnd = (event) => {
-        const key = event.target.dataset.note;
-        if (key) handleVirtualKeyUp({ note: key });
-      };
-
-      window.addEventListener('keydown', handleKeyDown);
-      window.addEventListener('keyup', handleKeyUp);
-      window.addEventListener('touchstart', handleTouchStart, { passive: true });
-      window.addEventListener('touchend', handleTouchEnd);
-
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-        window.removeEventListener('keyup', handleKeyUp);
-        window.removeEventListener('touchstart', handleTouchStart);
-        window.removeEventListener('touchend', handleTouchEnd);
-      };
-    }
-  }, [audioContext, keyboardFrequencyMap, focusedSlider, volume]);
-
-  const playNote = (
-    key,
-    frequency,
-    currentParams
-  ) => {
-    if (!audioContext) return;
-    if (audioContext.state === 'suspended') {
-      audioContext.resume();
-    }
-    if (audioContext.state !== 'running') {
-      console.log('AudioContext not running');
+    if (currentParams.crazy) {
+      playCrazy();
       return;
     }
 
+    // Enforce polyphony limit
+    if (activeVoicesRef.current.length >= MAX_VOICES) {
+      const oldestVoice = activeVoicesRef.current.shift();
+      if (oldestVoice) {
+        stopVoice(oldestVoice);
+      }
+    }
+
+    const voiceId = voiceIdCounterRef.current++;
+    const voice = createVoice(voiceId, frequency, currentParams);
+    voice.keyId = id; 
+    activeVoicesRef.current.push(voice);
+    startVoice(voice);
+  };
+
+  const releaseNote = (id) => {
+    // Find the voice with given keyId
+    const index = activeVoicesRef.current.findIndex((v) => v.keyId === id);
+    if (index !== -1) {
+      const voice = activeVoicesRef.current.splice(index, 1)[0];
+      stopVoice(voice);
+    }
+  };
+
+  const createVoice = (voiceId, frequency, params) => {
     const {
       waveform,
       pulseWidth,
@@ -435,180 +434,198 @@ const Synth = ({ onClose, position }) => {
       lfoMode,
       lfoFrequency,
       distortedFmIntensity
-    } = currentParams;
+    } = params;
 
-    if (!activeOscillatorsRef.current[key]) {
-      activeOscillatorsRef.current[key] = {
-        mainOscillators: [],
-        partialOscillators: [],
-        partialGains: [],
-        amMod: null,
-        fmMod: null,
-        distortedFmMod: null,
-        lfo: null,
-        baseFrequency: frequency
-      };
-    }
+    const voice = {
+      id: voiceId,
+      baseFrequency: frequency,
+      partialOscillators: [],
+      amOsc: null,
+      fmOsc: null,
+      distortedFmOsc: null,
+      lfoOsc: null,
+      gainNode: audioContext.createGain(),
+      amGain: audioContext.createGain(),
+      fmGain: audioContext.createGain(),
+      distortedFmGain: audioContext.createGain(),
+      lfoGain: audioContext.createGain(),
+      partialGains: []
+    };
 
-    if (!activeGainsRef.current[key]) {
-      activeGainsRef.current[key] = {
-        gainNodes: [],
-        amGain: null,
-        fmGain: null,
-        distortedFmGain: null,
-        lfoGain: null,
-      };
-    }
+    voice.gainNode.gain.setValueAtTime(0, audioContext.currentTime);
 
-    const gainNode = audioContext.createGain();
-    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.1);
-
-    const partialOscillators = [];
-    const partialGains = [];
-    const effectiveNumPartials = additiveMode === 'on' ? numPartials : 1; 
-
-    for (let i = 0; i < maxPartials; i++) {
+    const effectiveNumPartials = (additiveMode === 'on') ? Math.min(numPartials, 50) : 1;
+    for (let i = 0; i < effectiveNumPartials; i++) {
       let osc;
-      const oscFrequency = frequency + i * (additiveMode === 'on' ? distPartials : 0);
+      const oscFreq = frequency + i * (additiveMode === 'on' ? distPartials : 0);
       if (waveform === 'pulse') {
-        const { osc: pulseOsc, pulseShaper } = createPulseOscillator(
-          audioContext,
-          oscFrequency,
-          pulseWidth
-        );
+        const { osc: pulseOsc, pulseShaper } = createPulseOscillator(audioContext, oscFreq, pulseWidth);
         osc = pulseOsc;
         osc.pulseShaper = pulseShaper;
       } else {
         osc = audioContext.createOscillator();
         osc.type = waveform;
-        osc.frequency.setValueAtTime(oscFrequency, audioContext.currentTime);
+        osc.frequency.setValueAtTime(oscFreq, audioContext.currentTime);
       }
-
       const pGain = audioContext.createGain();
-      pGain.gain.setValueAtTime(i < effectiveNumPartials ? 1 : 0, audioContext.currentTime);
-
+      pGain.gain.setValueAtTime(1, audioContext.currentTime);
       if (waveform === 'pulse') {
-        osc.pulseShaper.connect(pGain).connect(gainNode);
+        osc.pulseShaper.connect(pGain).connect(voice.gainNode);
       } else {
-        osc.connect(pGain).connect(gainNode);
+        osc.connect(pGain).connect(voice.gainNode);
       }
-
-      osc.start();
-      partialOscillators.push(osc);
-      partialGains.push(pGain);
+      voice.partialOscillators.push(osc);
+      voice.partialGains.push(pGain);
     }
-
-    activeOscillatorsRef.current[key].partialOscillators = partialOscillators;
-    activeOscillatorsRef.current[key].partialGains = partialGains;
-    activeOscillatorsRef.current[key].mainOscillators = partialOscillators;
-
-    if (compressorRef.current) {
-      gainNode.connect(compressorRef.current);
-    } else if (masterGainRef.current) {
-      gainNode.connect(masterGainRef.current);
-    }
-    activeGainsRef.current[key].gainNodes.push(gainNode);
 
     // AM
-    const amMod = audioContext.createOscillator();
-    amMod.frequency.value = amFrequency || 0;
-    const amGain = audioContext.createGain();
-    amGain.gain.value = amMode === 'on' ? 0.5 : 0;
-    amMod.connect(amGain).connect(gainNode.gain);
-    amMod.start();
-    activeOscillatorsRef.current[key].amMod = amMod;
-    activeGainsRef.current[key].amGain = amGain;
+    voice.amOsc = audioContext.createOscillator();
+    voice.amOsc.frequency.value = amFrequency;
+    voice.amGain.gain.value = (amMode === 'on') ? 0.5 : 0;
+    voice.amOsc.connect(voice.amGain).connect(voice.gainNode.gain);
 
     // FM
-    const fmMod = audioContext.createOscillator();
-    fmMod.frequency.value = fmFrequency || 0;
-    const fmGain = audioContext.createGain();
-    fmGain.gain.value = fmMode === 'on' ? 100 : 0;
-    fmMod.connect(fmGain);
-    partialOscillators.forEach((osc) => fmGain.connect(osc.frequency));
-    fmMod.start();
-    activeOscillatorsRef.current[key].fmMod = fmMod;
-    activeGainsRef.current[key].fmGain = fmGain;
+    voice.fmOsc = audioContext.createOscillator();
+    voice.fmOsc.frequency.value = fmFrequency;
+    voice.fmGain.gain.value = (fmMode === 'on') ? 100 : 0;
 
     // Distorted FM
-    const distortedFmMod = audioContext.createOscillator();
-    distortedFmMod.frequency.value = fmFrequency || 0;
-    const distortedFmGain = audioContext.createGain();
-    distortedFmGain.gain.value = fmMode === 'on' ? (100 * distortedFmIntensity) : 0;
-    distortedFmMod.connect(distortedFmGain).connect(audioContext.destination);
-    distortedFmMod.start();
-    activeOscillatorsRef.current[key].distortedFmMod = distortedFmMod;
-    activeGainsRef.current[key].distortedFmGain = distortedFmGain;
+    voice.distortedFmOsc = audioContext.createOscillator();
+    voice.distortedFmOsc.frequency.value = fmFrequency;
+    voice.distortedFmGain.gain.value = (fmMode === 'on') ? (100 * distortedFmIntensity) : 0;
+
+    // Connect FM to frequencies
+    voice.fmOsc.connect(voice.fmGain).connect(voice.partialOscillators[0].frequency);
+    voice.distortedFmOsc.connect(voice.distortedFmGain).connect(voice.partialOscillators[0].frequency);
+
+    // Distorted FM connected directly to destination
+    voice.distortedFmOsc.connect(voice.distortedFmGain).connect(audioContext.destination);
 
     // LFO
-    const lfo = audioContext.createOscillator();
-    lfo.frequency.value = lfoFrequency || 0;
-    const lfoGain = audioContext.createGain();
-    lfoGain.gain.value = lfoMode === 'on' ? 0.5 : 0;
-    lfo.connect(lfoGain).connect(gainNode.gain);
-    lfo.start();
-    activeOscillatorsRef.current[key].lfo = lfo;
-    activeGainsRef.current[key].lfoGain = lfoGain;
+    voice.lfoOsc = audioContext.createOscillator();
+    voice.lfoOsc.frequency.value = lfoFrequency;
+    voice.lfoGain.gain.value = (lfoMode === 'on') ? 0.5 : 0;
+    voice.lfoOsc.connect(voice.lfoGain).connect(voice.gainNode.gain);
+
+    return voice;
   };
 
-  const stopNote = (key) => {
-    if (!audioContext) return;
+  const startVoice = (voice) => {
+    voice.partialOscillators.forEach((osc) => osc.start());
+    voice.amOsc.start();
+    voice.fmOsc.start();
+    voice.distortedFmOsc.start();
+    voice.lfoOsc.start();
 
-    const gainNodes = activeGainsRef.current[key]?.gainNodes || [];
-    const { amMod, fmMod, distortedFmMod, lfo, partialOscillators } = activeOscillatorsRef.current[key] || {};
-    const { amGain, fmGain, distortedFmGain, lfoGain } = activeGainsRef.current[key] || {};
+    voice.gainNode.connect(notesBusRef.current);
+    const now = audioContext.currentTime;
+    voice.gainNode.gain.cancelScheduledValues(now);
+    voice.gainNode.gain.setValueAtTime(0, now);
+    voice.gainNode.gain.linearRampToValueAtTime(1 * volume, now + 0.05);
+  };
 
-    gainNodes.forEach((gainNode) => {
-      gainNode.gain.cancelScheduledValues(audioContext.currentTime);
-      gainNode.gain.setValueAtTime(gainNode.gain.value, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.3);
+  const stopVoice = (voice) => {
+    const now = audioContext.currentTime;
+    voice.gainNode.gain.cancelScheduledValues(now);
+    voice.gainNode.gain.setValueAtTime(voice.gainNode.gain.value, now);
+    voice.gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+
+    const stopOsc = (osc) => {
+      if (!osc) return;
+      try { osc.stop(now + 0.1); } catch(e){}
+    };
+
+    stopOsc(voice.amOsc);
+    stopOsc(voice.fmOsc);
+    stopOsc(voice.distortedFmOsc);
+    stopOsc(voice.lfoOsc);
+    voice.partialOscillators.forEach(stopOsc);
+
+    setTimeout(() => {
+      try { voice.gainNode.disconnect(); } catch(e){}
+      voice.partialGains.forEach((g) => {
+        try { g.disconnect(); } catch(e){}
+      });
+      try { voice.amGain.disconnect(); } catch(e){}
+      try { voice.fmGain.disconnect(); } catch(e){}
+      try { voice.distortedFmGain.disconnect(); } catch(e){}
+      try { voice.lfoGain.disconnect(); } catch(e){}
+    }, 200);
+  };
+
+  const updateVoiceParams = (voice, params) => {
+    const {
+      waveform,
+      pulseWidth,
+      additiveMode,
+      numPartials,
+      distPartials,
+      amMode,
+      amFrequency,
+      fmMode,
+      fmFrequency,
+      lfoMode,
+      lfoFrequency,
+      distortedFmIntensity,
+    } = params;
+
+    const effectiveNumPartials = (additiveMode === 'on') ? Math.min(numPartials, 50) : 1;
+    const now = audioContext.currentTime;
+
+    // Update partials
+    voice.partialOscillators.forEach((osc, i) => {
+      if (i < effectiveNumPartials) {
+        const targetFreq = voice.baseFrequency + i * (additiveMode === 'on' ? distPartials : 0);
+        osc.frequency.cancelScheduledValues(now);
+        osc.frequency.linearRampToValueAtTime(targetFreq, now + 0.05);
+        if (waveform === 'pulse') {
+          updatePulseWave(osc, pulseWidth);
+        } else {
+          osc.type = waveform;
+        }
+        voice.partialGains[i].gain.setValueAtTime(1, now);
+      } else {
+        voice.partialGains[i].gain.setValueAtTime(0, now);
+      }
     });
 
-    if (amMod && amGain) {
-      amGain.gain.cancelScheduledValues(audioContext.currentTime);
-      amGain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.3);
-      amMod.stop(audioContext.currentTime + 0.3);
+    // AM
+    if (voice.amOsc && voice.amGain) {
+      voice.amOsc.frequency.setValueAtTime(amFrequency, now);
+      const amTarget = amMode === 'on' ? 0.5 : 0;
+      voice.amGain.gain.cancelScheduledValues(now);
+      voice.amGain.gain.linearRampToValueAtTime(amTarget, now + 0.05);
     }
 
-    if (fmMod && fmGain) {
-      fmGain.gain.cancelScheduledValues(audioContext.currentTime);
-      fmGain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.3);
-      fmMod.stop(audioContext.currentTime + 0.3);
+    // FM
+    if (voice.fmOsc && voice.fmGain) {
+      voice.fmOsc.frequency.setValueAtTime(fmFrequency, now);
+      const fmTarget = fmMode === 'on' ? 100 : 0;
+      voice.fmGain.gain.cancelScheduledValues(now);
+      voice.fmGain.gain.linearRampToValueAtTime(fmTarget, now + 0.05);
+      // Also update the connection to partial oscillators
+      voice.fmGain.disconnect();
+      voice.fmGain.connect(voice.partialOscillators[0].frequency);
     }
 
-    if (distortedFmMod && distortedFmGain) {
-      distortedFmGain.gain.cancelScheduledValues(audioContext.currentTime);
-      distortedFmGain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.3);
-      distortedFmMod.stop(audioContext.currentTime + 0.3);
+    // Distorted FM
+    if (voice.distortedFmOsc && voice.distortedFmGain) {
+      voice.distortedFmOsc.frequency.setValueAtTime(fmFrequency, now);
+      const distortedFmTarget = fmMode === 'on' ? (100 * distortedFmIntensity) : 0;
+      voice.distortedFmGain.gain.cancelScheduledValues(now);
+      voice.distortedFmGain.gain.linearRampToValueAtTime(distortedFmTarget, now + 0.05);
+      // Reconnect if needed
+      voice.distortedFmGain.disconnect();
+      voice.distortedFmGain.connect(audioContext.destination);
     }
 
-    if (lfo && lfoGain) {
-      lfoGain.gain.cancelScheduledValues(audioContext.currentTime);
-      lfoGain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.3);
-      lfo.stop(audioContext.currentTime + 0.3);
+    // LFO
+    if (voice.lfoOsc && voice.lfoGain) {
+      voice.lfoOsc.frequency.setValueAtTime(lfoFrequency, now);
+      const lfoTarget = lfoMode === 'on' ? 0.5 : 0;
+      voice.lfoGain.gain.cancelScheduledValues(now);
+      voice.lfoGain.gain.linearRampToValueAtTime(lfoTarget, now + 0.05);
     }
-
-    if (partialOscillators) {
-      partialOscillators.forEach((osc) => {
-        try {
-          osc.stop(audioContext.currentTime + 0.3);
-        } catch (e) {}
-      });
-    }
-
-    delete activeGainsRef.current[key];
-    delete activeOscillatorsRef.current[key];
-  };
-
-  const shuffleArray = (array) => {
-    let currentIndex = array.length, randomIndex;
-    while (currentIndex !== 0) {
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex--;
-      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-    }
-    return array;
   };
 
   const playCrazy = () => {
@@ -621,17 +638,25 @@ const Synth = ({ onClose, position }) => {
 
     if (selectedKey) {
       const virtualKey = `virtual-${selectedKey.note}`;
-      if (!activeOscillatorsRef.current[virtualKey]) {
-        playNote(
-          virtualKey,
-          selectedKey.frequency,
-          currentParams
-        );
+      if (!keysDownRef.current.has(virtualKey)) {
+        keysDownRef.current.add(virtualKey);
+        triggerNote(virtualKey, selectedKey.frequency * Math.pow(2, currentParams.octaveShift), currentParams);
         setTimeout(() => {
-          stopNote(virtualKey);
+          keysDownRef.current.delete(virtualKey);
+          releaseNote(virtualKey);
         }, 300);
       }
     }
+  };
+
+  const shuffleArray = (array) => {
+    let currentIndex = array.length, randomIndex;
+    while (currentIndex !== 0) {
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+    return array;
   };
 
   const handleVirtualKeyDown = async (key) => {
@@ -639,24 +664,18 @@ const Synth = ({ onClose, position }) => {
       await audioContext.resume();
     }
     const currentParams = parametersRef.current;
-    if (currentParams.crazy) {
-      playCrazy();
-    } else {
-      const virtualKey = `virtual-${key.note}`;
-      if (!activeOscillatorsRef.current[virtualKey]) {
-        playNote(
-          virtualKey,
-          key.frequency,
-          currentParams
-        );
-      }
+    const virtualKey = `virtual-${key.note}`;
+    if (!keysDownRef.current.has(virtualKey)) {
+      keysDownRef.current.add(virtualKey);
+      triggerNote(virtualKey, key.frequency, currentParams);
     }
   };
 
   const handleVirtualKeyUp = (key) => {
     const virtualKey = `virtual-${key.note}`;
-    if (activeOscillatorsRef.current[virtualKey]) {
-      stopNote(virtualKey);
+    if (keysDownRef.current.has(virtualKey)) {
+      keysDownRef.current.delete(virtualKey);
+      releaseNote(virtualKey);
     }
   };
 
@@ -668,17 +687,14 @@ const Synth = ({ onClose, position }) => {
     setOctaveShift((prev) => Math.min(prev + 1, 1));
   };
 
-  // Callback for when a slider in Controls gets focused
   const handleSliderFocus = (sliderName) => {
     setFocusedSlider(sliderName);
   };
 
-  // Callback for when a slider loses focus
   const handleSliderBlur = () => {
     setFocusedSlider(null);
   };
 
-  // Callback to set slider values programmatically if needed
   const handleChangeSliderValue = (sliderName, newValue) => {
     switch (sliderName) {
       case 'numPartials':
@@ -701,6 +717,18 @@ const Synth = ({ onClose, position }) => {
         break;
       case 'volume':
         setVolume(newValue);
+        break;
+      case 'lpFrequency':
+        setLpFrequency(newValue);
+        break;
+      case 'hpFrequency':
+        setHpFrequency(newValue);
+        break;
+      case 'bpFrequency':
+        setBpFrequency(newValue);
+        break;
+      case 'bpQ':
+        setBpQ(newValue);
         break;
       default:
         break;
@@ -763,7 +791,14 @@ const Synth = ({ onClose, position }) => {
           setDistortedFmIntensity={setDistortedFmIntensity}
           volume={volume}
           setVolume={setVolume}
-          // New props for slider focus handling and programmatic updates
+          lpFrequency={lpFrequency}
+          setLpFrequency={setLpFrequency}
+          hpFrequency={hpFrequency}
+          setHpFrequency={setHpFrequency}
+          bpFrequency={bpFrequency}
+          setBpFrequency={setBpFrequency}
+          bpQ={bpQ}
+          setBpQ={setBpQ}
           onSliderFocus={handleSliderFocus}
           onSliderBlur={handleSliderBlur}
           onChangeSliderValue={handleChangeSliderValue}
@@ -772,7 +807,7 @@ const Synth = ({ onClose, position }) => {
         <Instructions>
           Press keys (Z, S, X, D, C, V, G, B, H, N, J, M, Q, 2, W, 3, E, R, 5, T, 6, Y, 7, U, I) to play notes.
           <br />
-          Click and hold on a slider to focus it. While focused, use Up/Down arrow keys to change its value by 1.
+          Click and hold on a slider to focus it. While focused, use Up/Down arrow keys to change its value.
         </Instructions>
 
         <ButtonContainer>
@@ -805,6 +840,10 @@ const Synth = ({ onClose, position }) => {
             <FaArrowUp style={{ marginRight: '5px' }} />
             Octave Up
           </ToggleButton>
+
+          <ToggleButton onClick={() => setFiltersEnabled(!filtersEnabled)}>
+            {filtersEnabled ? 'Turn Filters Off' : 'Turn Filters On'}
+          </ToggleButton>
         </ButtonContainer>
 
         {showKeyboard && (
@@ -812,7 +851,7 @@ const Synth = ({ onClose, position }) => {
             keys={shiftedKeys}
             handleVirtualKeyDown={handleVirtualKeyDown}
             handleVirtualKeyUp={handleVirtualKeyUp}
-            activeOscillators={activeOscillatorsRef.current}
+            activeOscillators={{}} 
             isTwoRows={isTwoRows}
           />
         )}

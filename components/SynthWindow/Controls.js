@@ -38,8 +38,21 @@ const Controls = ({
   setCrazy,
   distortedFmIntensity,
   setDistortedFmIntensity,
-  volume, // Receive volume
-  setVolume, // Receive setVolume
+  volume,
+  setVolume,
+  // New filter props
+  lpFrequency,
+  setLpFrequency,
+  hpFrequency,
+  setHpFrequency,
+  bpFrequency,
+  setBpFrequency,
+  bpQ,
+  setBpQ,
+  // Focus/blur handlers for sliders if you need them
+  onSliderFocus,
+  onSliderBlur,
+  onChangeSliderValue
 }) => {
   return (
     <Container>
@@ -103,7 +116,7 @@ const Controls = ({
         </ButtonGroup>
       </ControlRow>
 
-      {/* Pulse Width Control (only shown when pulse waveform is selected) */}
+      {/* Pulse Width (Pulse Waveform Only) */}
       {waveform === 'pulse' && (
         <ControlRow>
           <Label>Pulse Width: {pulseWidth.toFixed(2)}</Label>
@@ -114,6 +127,8 @@ const Controls = ({
               max={0.9}
               step={0.01}
               value={pulseWidth}
+              onFocus={() => onSliderFocus && onSliderFocus('pulseWidth')}
+              onBlur={() => onSliderBlur && onSliderBlur()}
               onChange={(e) => setPulseWidth(parseFloat(e.target.value))}
             />
           </RangeContainer>
@@ -154,6 +169,8 @@ const Controls = ({
                 min={1}
                 max={100}
                 value={numPartials}
+                onFocus={() => onSliderFocus && onSliderFocus('numPartials')}
+                onBlur={() => onSliderBlur && onSliderBlur()}
                 onChange={(e) => setNumPartials(parseInt(e.target.value))}
               />
             </RangeContainer>
@@ -166,6 +183,8 @@ const Controls = ({
                 min={0}
                 max={100}
                 value={distPartials}
+                onFocus={() => onSliderFocus && onSliderFocus('distPartials')}
+                onBlur={() => onSliderBlur && onSliderBlur()}
                 onChange={(e) => setDistPartials(parseInt(e.target.value))}
               />
             </RangeContainer>
@@ -196,7 +215,6 @@ const Controls = ({
         </RadioGroup>
       </ControlRow>
 
-      {/* AM Frequency Control */}
       {amMode === 'on' && (
         <ControlRow>
           <Label>AM Frequency: {amFrequency}</Label>
@@ -206,6 +224,8 @@ const Controls = ({
               min={0}
               max={500}
               value={amFrequency}
+              onFocus={() => onSliderFocus && onSliderFocus('amFrequency')}
+              onBlur={() => onSliderBlur && onSliderBlur()}
               onChange={(e) => setAmFrequency(parseInt(e.target.value))}
             />
           </RangeContainer>
@@ -235,7 +255,6 @@ const Controls = ({
         </RadioGroup>
       </ControlRow>
 
-      {/* FM Frequency Control */}
       {fmMode === 'on' && (
         <>
           <ControlRow>
@@ -246,12 +265,13 @@ const Controls = ({
                 min={0}
                 max={500}
                 value={fmFrequency}
+                onFocus={() => onSliderFocus && onSliderFocus('fmFrequency')}
+                onBlur={() => onSliderBlur && onSliderBlur()}
                 onChange={(e) => setFmFrequency(parseInt(e.target.value))}
               />
             </RangeContainer>
           </ControlRow>
 
-          {/* Distorted FM Intensity */}
           <ControlRow>
             <Label>Bass Distortion Intensity: {distortedFmIntensity}</Label>
             <RangeContainer>
@@ -261,6 +281,8 @@ const Controls = ({
                 max={1}
                 step={0.01}
                 value={distortedFmIntensity}
+                onFocus={() => onSliderFocus && onSliderFocus('distortedFmIntensity')}
+                onBlur={() => onSliderBlur && onSliderBlur()}
                 onChange={(e) => setDistortedFmIntensity(parseFloat(e.target.value))}
               />
             </RangeContainer>
@@ -291,7 +313,6 @@ const Controls = ({
         </RadioGroup>
       </ControlRow>
 
-      {/* LFO Frequency Control */}
       {lfoMode === 'on' && (
         <ControlRow>
           <Label>LFO Frequency: {lfoFrequency}</Label>
@@ -302,6 +323,8 @@ const Controls = ({
               max={10}
               step={0.1}
               value={lfoFrequency}
+              onFocus={() => onSliderFocus && onSliderFocus('lfoFrequency')}
+              onBlur={() => onSliderBlur && onSliderBlur()}
               onChange={(e) => setLfoFrequency(parseFloat(e.target.value))}
             />
           </RangeContainer>
@@ -318,7 +341,74 @@ const Controls = ({
             max={4}
             step={0.01}
             value={volume}
+            onFocus={() => onSliderFocus && onSliderFocus('volume')}
+            onBlur={() => onSliderBlur && onSliderBlur()}
             onChange={(e) => setVolume(parseFloat(e.target.value))}
+          />
+        </RangeContainer>
+      </ControlRow>
+
+      {/* Filter Controls */}
+      <ControlRow>
+        <Label>Low-Pass Cutoff: {lpFrequency} Hz</Label>
+        <RangeContainer>
+          <Range
+            id="lpFrequency"
+            min={20}
+            max={20000}
+            step={10}
+            value={lpFrequency}
+            onFocus={() => onSliderFocus && onSliderFocus('lpFrequency')}
+            onBlur={() => onSliderBlur && onSliderBlur()}
+            onChange={(e) => setLpFrequency(parseInt(e.target.value))}
+          />
+        </RangeContainer>
+      </ControlRow>
+
+      <ControlRow>
+        <Label>High-Pass Cutoff: {hpFrequency} Hz</Label>
+        <RangeContainer>
+          <Range
+            id="hpFrequency"
+            min={20}
+            max={20000}
+            step={10}
+            value={hpFrequency}
+            onFocus={() => onSliderFocus && onSliderFocus('hpFrequency')}
+            onBlur={() => onSliderBlur && onSliderBlur()}
+            onChange={(e) => setHpFrequency(parseInt(e.target.value))}
+          />
+        </RangeContainer>
+      </ControlRow>
+
+      <ControlRow>
+        <Label>Band-Pass Frequency: {bpFrequency} Hz</Label>
+        <RangeContainer>
+          <Range
+            id="bpFrequency"
+            min={20}
+            max={20000}
+            step={10}
+            value={bpFrequency}
+            onFocus={() => onSliderFocus && onSliderFocus('bpFrequency')}
+            onBlur={() => onSliderBlur && onSliderBlur()}
+            onChange={(e) => setBpFrequency(parseInt(e.target.value))}
+          />
+        </RangeContainer>
+      </ControlRow>
+
+      <ControlRow>
+        <Label>Band-Pass Q: {bpQ.toFixed(2)}</Label>
+        <RangeContainer>
+          <Range
+            id="bpQ"
+            min={0.1}
+            max={20}
+            step={0.1}
+            value={bpQ}
+            onFocus={() => onSliderFocus && onSliderFocus('bpQ')}
+            onBlur={() => onSliderBlur && onSliderBlur()}
+            onChange={(e) => setBpQ(parseFloat(e.target.value))}
           />
         </RangeContainer>
       </ControlRow>

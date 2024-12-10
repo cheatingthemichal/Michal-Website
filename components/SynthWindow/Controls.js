@@ -1,4 +1,3 @@
-// components/Controls.js
 import React from 'react';
 import { RadioButton, Range } from '@react95/core';
 import {
@@ -34,8 +33,6 @@ const Controls = ({
   setLfoMode,
   lfoFrequency,
   setLfoFrequency,
-  crazy,
-  setCrazy,
   distortedFmIntensity,
   setDistortedFmIntensity,
   volume,
@@ -63,7 +60,6 @@ const Controls = ({
           <StyledButton
             onClick={() => {
               setWaveform('sine');
-              setCrazy(false);
             }}
             active={waveform === 'sine'}
           >
@@ -72,7 +68,6 @@ const Controls = ({
           <StyledButton
             onClick={() => {
               setWaveform('sawtooth');
-              setCrazy(false);
             }}
             active={waveform === 'sawtooth'}
           >
@@ -81,7 +76,6 @@ const Controls = ({
           <StyledButton
             onClick={() => {
               setWaveform('square');
-              setCrazy(false);
             }}
             active={waveform === 'square'}
           >
@@ -90,7 +84,6 @@ const Controls = ({
           <StyledButton
             onClick={() => {
               setWaveform('triangle');
-              setCrazy(false);
             }}
             active={waveform === 'triangle'}
           >
@@ -99,19 +92,10 @@ const Controls = ({
           <StyledButton
             onClick={() => {
               setWaveform('pulse');
-              setCrazy(false);
             }}
             active={waveform === 'pulse'}
           >
             Pulse
-          </StyledButton>
-          <StyledButton
-            onClick={() => {
-              setCrazy(!crazy);
-            }}
-            active={crazy}
-          >
-            ?
           </StyledButton>
         </ButtonGroup>
       </ControlRow>

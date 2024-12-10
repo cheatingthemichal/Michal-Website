@@ -1,4 +1,3 @@
-// components/Synth.js
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { List, Modal, Button } from '@react95/core';
 import { Mmsys120 } from '@react95/icons';
@@ -9,7 +8,7 @@ import { Instructions, Container } from './styles';
 import { useSharedAudioContext } from '../../context/AudioContextProvider';
 import { FaArrowDown, FaArrowUp } from 'react-icons/fa'; 
 import useIsMobile from '../../hooks/useIsMobile';
-import { createLowPassFilter, createHighPassFilter, createBandPassFilter } from './filters';
+import { createLowPassFilter, createHighPassFilter, createBandPassFilter } from './SubComponents/filters';
 
 const ButtonContainer = styled.div`
   display: flex;
@@ -72,7 +71,6 @@ const Synth = ({ onClose, position }) => {
   const [fmFrequency, setFmFrequency] = useState(250);
   const [lfoMode, setLfoMode] = useState('off');
   const [lfoFrequency, setLfoFrequency] = useState(5);
-  const [crazy, setCrazy] = useState(false);
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [isTwoRows, setIsTwoRows] = useState(false);
   const [distortedFmIntensity, setDistortedFmIntensity] = useState(0);
@@ -114,7 +112,6 @@ const Synth = ({ onClose, position }) => {
     fmFrequency,
     lfoMode,
     lfoFrequency,
-    crazy,
     distortedFmIntensity,
     octaveShift,
     volume,
@@ -123,6 +120,8 @@ const Synth = ({ onClose, position }) => {
     bpFrequency,
     bpQ
   });
+
+  const keyboardFrequencyMapRef = useRef({});
 
   useEffect(() => {
     if (isMobile && audioContext) {
@@ -185,18 +184,20 @@ const Synth = ({ onClose, position }) => {
         }
 
         // Normal note logic
-        if (keyboardFrequencyMap[keyCode]) {
+        const frequency = keyboardFrequencyMapRef.current[keyCode];
+        if (frequency) {
           // Pressing a physical key
           if (!keysDownRef.current.has(keyCode)) {
             keysDownRef.current.add(keyCode);
-            triggerNote(keyCode, keyboardFrequencyMap[keyCode], currentParams);
+            triggerNote(keyCode, frequency, currentParams);
           }
         }
       };
 
       const handleKeyUp = (event) => {
         const keyCode = event.keyCode.toString();
-        if (keyboardFrequencyMap[keyCode]) {
+        const frequency = keyboardFrequencyMapRef.current[keyCode];
+        if (frequency) {
           if (keysDownRef.current.has(keyCode)) {
             keysDownRef.current.delete(keyCode);
             releaseNote(keyCode);
@@ -228,7 +229,6 @@ const Synth = ({ onClose, position }) => {
       fmFrequency,
       lfoMode,
       lfoFrequency,
-      crazy,
       distortedFmIntensity,
       octaveShift,
       volume,
@@ -268,7 +268,6 @@ const Synth = ({ onClose, position }) => {
     fmFrequency,
     lfoMode,
     lfoFrequency,
-    crazy,
     distortedFmIntensity,
     octaveShift,
     volume,
@@ -321,6 +320,10 @@ const Synth = ({ onClose, position }) => {
       return acc;
     }, {});
   }, [shiftedKeys]);
+
+  useEffect(() => {
+    keyboardFrequencyMapRef.current = keyboardFrequencyMap;
+  }, [keyboardFrequencyMap]);
 
   const handleArrowKeyForSlider = (sliderName, increment) => {
     switch (sliderName) {
@@ -390,11 +393,6 @@ const Synth = ({ onClose, position }) => {
 
   const triggerNote = (id, frequency, currentParams) => {
     if (!audioContext || audioContext.state === 'suspended') return;
-
-    if (currentParams.crazy) {
-      playCrazy();
-      return;
-    }
 
     // Enforce polyphony limit
     if (activeVoicesRef.current.length >= MAX_VOICES) {
@@ -628,37 +626,6 @@ const Synth = ({ onClose, position }) => {
     }
   };
 
-  const playCrazy = () => {
-    if (!audioContext) return;
-
-    const currentParams = parametersRef.current;
-    const whiteKeysList = KEYS.filter((key) => key.type === 'white');
-    const shuffledKeys = shuffleArray([...whiteKeysList]);
-    const selectedKey = shuffledKeys[0];
-
-    if (selectedKey) {
-      const virtualKey = `virtual-${selectedKey.note}`;
-      if (!keysDownRef.current.has(virtualKey)) {
-        keysDownRef.current.add(virtualKey);
-        triggerNote(virtualKey, selectedKey.frequency * Math.pow(2, currentParams.octaveShift), currentParams);
-        setTimeout(() => {
-          keysDownRef.current.delete(virtualKey);
-          releaseNote(virtualKey);
-        }, 300);
-      }
-    }
-  };
-
-  const shuffleArray = (array) => {
-    let currentIndex = array.length, randomIndex;
-    while (currentIndex !== 0) {
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex--;
-      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-    }
-    return array;
-  };
-
   const handleVirtualKeyDown = async (key) => {
     if (audioContext.state === 'suspended') {
       await audioContext.resume();
@@ -739,7 +706,7 @@ const Synth = ({ onClose, position }) => {
     <Modal
       closeModal={onClose}
       style={{
-        width: '700px',
+        width: '750px',
         height: 'auto',
         left: position.x,
         top: position.y,
@@ -785,8 +752,6 @@ const Synth = ({ onClose, position }) => {
           setLfoMode={setLfoMode}
           lfoFrequency={lfoFrequency}
           setLfoFrequency={setLfoFrequency}
-          crazy={crazy}
-          setCrazy={setCrazy}
           distortedFmIntensity={distortedFmIntensity}
           setDistortedFmIntensity={setDistortedFmIntensity}
           volume={volume}

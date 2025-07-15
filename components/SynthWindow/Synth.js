@@ -496,9 +496,6 @@ const Synth = ({ onClose, position }) => {
     voice.fmOsc.connect(voice.fmGain).connect(voice.partialOscillators[0].frequency);
     voice.distortedFmOsc.connect(voice.distortedFmGain).connect(voice.partialOscillators[0].frequency);
 
-    // Distorted FM connected directly to destination
-    voice.distortedFmOsc.connect(voice.distortedFmGain).connect(audioContext.destination);
-
     // LFO
     voice.lfoOsc = audioContext.createOscillator();
     voice.lfoOsc.frequency.value = lfoFrequency;
@@ -612,9 +609,6 @@ const Synth = ({ onClose, position }) => {
       const distortedFmTarget = fmMode === 'on' ? (100 * distortedFmIntensity) : 0;
       voice.distortedFmGain.gain.cancelScheduledValues(now);
       voice.distortedFmGain.gain.linearRampToValueAtTime(distortedFmTarget, now + 0.05);
-      // Reconnect if needed
-      voice.distortedFmGain.disconnect();
-      voice.distortedFmGain.connect(audioContext.destination);
     }
 
     // LFO
@@ -701,6 +695,37 @@ const Synth = ({ onClose, position }) => {
         break;
     }
   };
+
+  // Cleanup effect when the synth window is closed/unmounted
+  useEffect(() => {
+    return () => {
+      // Stop all active voices
+      activeVoicesRef.current.forEach((voice) => {
+        stopVoice(voice);
+      });
+      activeVoicesRef.current = [];
+
+      // Disconnect all nodes to avoid stacking multiple connections
+      if (notesBusRef.current) {
+        try { notesBusRef.current.disconnect(); } catch(e){}
+      }
+      if (lowPassRef.current) {
+        try { lowPassRef.current.disconnect(); } catch(e){}
+      }
+      if (highPassRef.current) {
+        try { highPassRef.current.disconnect(); } catch(e){}
+      }
+      if (bandPassRef.current) {
+        try { bandPassRef.current.disconnect(); } catch(e){}
+      }
+      if (compressorRef.current) {
+        try { compressorRef.current.disconnect(); } catch(e){}
+      }
+      if (masterGainRef.current) {
+        try { masterGainRef.current.disconnect(); } catch(e){}
+      }
+    };
+  }, []);
 
   return (
     <Modal

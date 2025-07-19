@@ -71,7 +71,7 @@ const Synth = ({ onClose, position }) => {
   const [fmFrequency, setFmFrequency] = useState(250);
   const [lfoMode, setLfoMode] = useState('off');
   const [lfoFrequency, setLfoFrequency] = useState(5);
-  const [showKeyboard, setShowKeyboard] = useState(false);
+  const [showKeyboard, setShowKeyboard] = useState(true);
   const [isTwoRows, setIsTwoRows] = useState(false);
   const [distortedFmIntensity, setDistortedFmIntensity] = useState(0);
   const [volume, setVolume] = useState(1);
@@ -754,6 +754,52 @@ const Synth = ({ onClose, position }) => {
       ]}
     >
       <Container>
+        {showKeyboard && (
+          <VirtualKeyboard
+            keys={shiftedKeys}
+            handleVirtualKeyDown={handleVirtualKeyDown}
+            handleVirtualKeyUp={handleVirtualKeyUp}
+            activeOscillators={{}} 
+            isTwoRows={isTwoRows}
+          />
+        )}
+
+        <ButtonContainer>
+          <ToggleButton
+            onClick={handleOctaveDown}
+            disabled={octaveShift <= -1}
+            title="Shift down by one octave"
+            aria-label="Shift down by one octave"
+          >
+            <FaArrowDown style={{ marginRight: '5px' }} />
+            Octave Down
+          </ToggleButton>
+
+          <ToggleButton onClick={() => setShowKeyboard(!showKeyboard)}>
+            {showKeyboard ? 'Hide Virtual Keyboard' : 'Show Virtual Keyboard'}
+          </ToggleButton>
+
+          {showKeyboard && (
+            <ToggleButton onClick={() => setIsTwoRows(!isTwoRows)}>
+              {isTwoRows ? 'Make One Row' : 'Make Two Rows'}
+            </ToggleButton>
+          )}
+
+          <ToggleButton
+            onClick={handleOctaveUp}
+            disabled={octaveShift >= 1}
+            title="Shift up by one octave"
+            aria-label="Shift up by one octave"
+          >
+            <FaArrowUp style={{ marginRight: '5px' }} />
+            Octave Up
+          </ToggleButton>
+
+          <ToggleButton onClick={() => setFiltersEnabled(!filtersEnabled)}>
+            {filtersEnabled ? 'Turn Filters Off' : 'Turn Filters On'}
+          </ToggleButton>
+        </ButtonContainer>
+
         <Controls
           waveform={waveform}
           setWaveform={setWaveform}
@@ -799,52 +845,6 @@ const Synth = ({ onClose, position }) => {
           <br />
           Click and hold on a slider to focus it. While focused, use Up/Down arrow keys to change its value.
         </Instructions>
-
-        <ButtonContainer>
-          <ToggleButton
-            onClick={handleOctaveDown}
-            disabled={octaveShift <= -1}
-            title="Shift down by one octave"
-            aria-label="Shift down by one octave"
-          >
-            <FaArrowDown style={{ marginRight: '5px' }} />
-            Octave Down
-          </ToggleButton>
-
-          <ToggleButton onClick={() => setShowKeyboard(!showKeyboard)}>
-            {showKeyboard ? 'Hide Virtual Keyboard' : 'Show Virtual Keyboard'}
-          </ToggleButton>
-
-          {showKeyboard && (
-            <ToggleButton onClick={() => setIsTwoRows(!isTwoRows)}>
-              {isTwoRows ? 'Make One Row' : 'Make Two Rows'}
-            </ToggleButton>
-          )}
-
-          <ToggleButton
-            onClick={handleOctaveUp}
-            disabled={octaveShift >= 1}
-            title="Shift up by one octave"
-            aria-label="Shift up by one octave"
-          >
-            <FaArrowUp style={{ marginRight: '5px' }} />
-            Octave Up
-          </ToggleButton>
-
-          <ToggleButton onClick={() => setFiltersEnabled(!filtersEnabled)}>
-            {filtersEnabled ? 'Turn Filters Off' : 'Turn Filters On'}
-          </ToggleButton>
-        </ButtonContainer>
-
-        {showKeyboard && (
-          <VirtualKeyboard
-            keys={shiftedKeys}
-            handleVirtualKeyDown={handleVirtualKeyDown}
-            handleVirtualKeyUp={handleVirtualKeyUp}
-            activeOscillators={{}} 
-            isTwoRows={isTwoRows}
-          />
-        )}
       </Container>
     </Modal>
   );

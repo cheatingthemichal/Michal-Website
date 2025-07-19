@@ -74,7 +74,7 @@ const ProjectsModal = ({
               <Conflnk102 variant="32x32_4"/>
               <p style={{ margin: '4px 0' }}>
                 Poker App<br />
-                I am Building
+                I was Building
               </p>
             </div>
           </div>

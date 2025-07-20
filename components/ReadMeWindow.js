@@ -4,12 +4,10 @@ import { List, Modal } from '@react95/core';
 import { Notepad } from '@react95/icons';
 
 const ReadMeWindow = ({ onClose, position }) => {
-  const initialText = `Hi! My name is Michal Hajlasz and this is my website. 
-          
-I built it in Next.js with the React95 component library.
-
-Here, you can find some apps and other things I've built.
-
+  const initialText = `Hi! My name is Michal Hajlasz and this is my website.
+I wrote it in Next.js with the React95 component library.
+Here, you can find some apps I've built.
+The source code and my LinkedIn are in the Start Menu.
 You can contact me at: michalhajlasz@gmail.com.`;
 
   const [text, setText] = useState(initialText);

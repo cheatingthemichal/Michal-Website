@@ -146,11 +146,19 @@ const ControlElements = ({
     setIsPlaying(!isPlaying);
   };
 
-  const handleSeekChange = useCallback((e) => {
+  useEffect(() => {
+    // Map currentTime to a percentage
+    // (Assuming duration is not zero)
+    if (duration > 0) {
+      setSeekValue((currentTime / duration) * 100);
+    }
+  }, [currentTime, duration]);
+
+  const handleSeekChange = (e) => {
     const value = parseInt(e.target.value, 10);
     setSeekValue(value);
     handleSeek(value);
-  }, [handleSeek]);
+  };
 
   const handleSpeedSliderChange = (e) => {
     const value = parseFloat(e.target.value);

@@ -494,7 +494,10 @@ const Synth = ({ onClose, position }) => {
 
     // Connect FM to frequencies
     voice.fmOsc.connect(voice.fmGain).connect(voice.partialOscillators[0].frequency);
-    voice.distortedFmOsc.connect(voice.distortedFmGain).connect(voice.partialOscillators[0].frequency);
+    voice.distortedFmOsc.connect(voice.distortedFmGain).connect(voice.partialOscillators[0].frequency);     
+
+    // Distorted FM connected directly to destination (creates the bass effect)
+    voice.distortedFmOsc.connect(voice.distortedFmGain).connect(audioContext.destination);
 
     // LFO
     voice.lfoOsc = audioContext.createOscillator();
@@ -609,6 +612,10 @@ const Synth = ({ onClose, position }) => {
       const distortedFmTarget = fmMode === 'on' ? (100 * distortedFmIntensity) : 0;
       voice.distortedFmGain.gain.cancelScheduledValues(now);
       voice.distortedFmGain.gain.linearRampToValueAtTime(distortedFmTarget, now + 0.05);
+      // Reconnect if needed (maintains the bass effect)
+      voice.distortedFmGain.disconnect();
+      voice.distortedFmGain.connect(voice.partialOscillators[0].frequency);
+      voice.distortedFmGain.connect(audioContext.destination);
     }
 
     // LFO

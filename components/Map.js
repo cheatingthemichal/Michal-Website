@@ -2,18 +2,25 @@
 import React from 'react';
 import { List, Modal } from '@react95/core';
 import { Inetcpl1313 } from '@react95/icons';
+import dynamic from 'next/dynamic';
+
+// Load MountainFinder client-side only (it uses Leaflet)
+const MountainFinder = dynamic(
+  () => import('./MountainFinder/MountainFinder'),
+  { ssr: false }
+);
 
 const Map = ({ onClose, position }) => {
   return (
     <Modal
       closeModal={onClose}
       style={{
-        width: '300px',
-        height: '200px',
+        width: '750px',
+        height: '600px',
         left: position.x,
         top: position.y,
-        maxWidth: '90%',
-        maxHeight: '80%',
+        maxWidth: '95%',
+        maxHeight: '95%',
         overflow: 'auto',
         zIndex: 1000,
       }}
@@ -30,7 +37,9 @@ const Map = ({ onClose, position }) => {
         },
       ]}
     >
-      <h1>Coming soon.</h1>
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <MountainFinder />
+      </div>
     </Modal>
   );
 };

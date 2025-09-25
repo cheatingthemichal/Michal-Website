@@ -24,6 +24,10 @@ const getModalPosition = (modalType, width, height) => {
       x: width - modalWidth - 50,
       y: height - modalHeight - 100,
     },
+    Map: {
+      x: width - modalWidth - 1100,
+      y: 170
+    }
   };
 
   // Adjust for mobile view if necessary

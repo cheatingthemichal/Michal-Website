@@ -164,7 +164,7 @@ const Home = () => {
     <Container>
       <Head>
         <title>Michal Hajlasz - Personal Website</title>
-        <meta name="description" content="Michał Hajłasz - Portfolio website of Michal Hajlasz showcasing projects and experiments with React95 and Next.js" />
+        <meta name="description" content="My name is Michal Hajlasz and this is my website." />
         <meta name="keywords" content="Michał Hajłasz, Michal Hajlasz, software developer, portfolio, projects, React, Next.js" />
         <meta name="author" content="Michal Hajlasz" />
         <meta property="og:title" content="Michal Hajlasz, Michał Hajłasz - Portfolio" />
